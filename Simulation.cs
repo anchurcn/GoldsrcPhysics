@@ -1,4 +1,5 @@
-﻿using BulletSharp;
+﻿using BspLib.Bsp;
+using BulletSharp;
 using BulletSharp.Math;
 using DemoFramework;
 using System;
@@ -22,6 +23,8 @@ namespace GoldsrcPhysics
         public BroadphaseInterface Broadphase { get; }
         public DiscreteDynamicsWorld World { get; }
         List<IPhysicsObject> _physicsObject;
+        List<GoldsrcRagdoll> _goldsrcRagdolls;
+        public FPSTimer Timer;
 
         public Simulation()
         {
@@ -29,59 +32,171 @@ namespace GoldsrcPhysics
             Dispatcher = new CollisionDispatcher(CollisionConfiguration);
             Broadphase = new AxisSweep3(new Vector3(-10000, -10000, -10000), new Vector3(10000, 10000, 10000));
             World = new DiscreteDynamicsWorld(Dispatcher, Broadphase, null, CollisionConfiguration);
+            World.Gravity = new Vector3(0, 0, -9.81f);
             _physicsObject = new List<IPhysicsObject>();
+            _goldsrcRagdolls = new List<GoldsrcRagdoll>();
+            Timer = new FPSTimer();
+            Timer.GameUpdate += GetEventHandler();
             //World.DispatchInfo.UseConvexConservativeDistanceUtil = true;
             //World.DispatchInfo.ConvexConservativeDistanceThreshold = 0.01f;
-
             //CreateGround();
-
             //SpawnRagdoll(new Vector3(1, 0.5f, 0));
             //SpawnRagdoll(new Vector3(-1, 0.9f, -3));
         }
-
-        public async void Run()//开始物理循环
+        ~Simulation()
         {
-            while (true)
+            Dispose();
+        }
+        public void SpawnBox(int ptr)
+        {
+            _physicsObject.Add(new GoldsrcBox(ptr, World));
+        }
+        GamingEventHandler GetEventHandler()
+        {
+            return new GamingEventHandler(FixedUpdate);
+        }
+        void FixedUpdate()
+        {
+            World.StepSimulation(0.019f * 1000);
+            int count = _physicsObject.Count;
+            for (int i = 0; i < count; i++)
             {
-                await Task.Delay(20);
-                World.StepSimulation(20);
-                foreach (var i in _physicsObject)
-                {
-                    i.FixedUpdate();
-                }
+                _physicsObject[i].FixedUpdate();
             }
         }
+        public void UpdateRagdoll(int index)
+        {
+            _goldsrcRagdolls.Last().UpdateRagdoll();
+        }
+        public void Run()
+        {
+            Timer.GameStart(50);
+        }
+        public void AddRagdoll()
+        {
+            _goldsrcRagdolls.Add(new GoldsrcRagdoll(World));
+        }
+        string[] EntityWithInvisableModel =
+        {
+            "func_buyzone",
+            "func_bomb_target"
+        };
+        public void LoadBsp(string path)
+        {
+            List<int> invisableModelIndex = new List<int>();
+            BspFile bsp = new BspFile();
+            BspFile.LoadAllFromFile(bsp, BspFile.LoadFlags.Visuals | BspFile.LoadFlags.Entities, path);
+            foreach (var i in bsp.Entities)
+            {
+                string classname = "";
+                if (!i.TryGetValue("classname", out classname))
+                    continue;
 
+                for (int j = 0; j < EntityWithInvisableModel.Length; j++)
+                {
+                    if (classname == EntityWithInvisableModel[j])
+                    {
+                        invisableModelIndex.Add(Convert.ToInt32(i["model"].Substring(1)));
+                        break;
+                    }
+                }
+            }
+            List<BvhTriangleMeshShape> shapes = new List<BvhTriangleMeshShape>();
+            for (int i = 0; i < bsp.Models.Count; i++)
+            {
+                if (invisableModelIndex.Contains(i))
+                    continue;
+
+                var bspmodel = bsp.Models[i];
+                //var gameObject = new GameObject("" + i);
+                //gameObject.transform.SetParent(go_all_models.transform);
+                //if (i == 0)//如果是静态地图（）
+                //{
+                //    gameObject.isStatic = true;
+                //    gameObject.layer = settings.Model0Layer;
+                //}
+                //else
+                //{
+                //    gameObject.layer = settings.OtherModelLayer;
+                //}
+
+                // Count triangles
+                int submeshCountWithoutSky = 0;
+                System.Collections.Generic.KeyValuePair<string, uint[]> kvp_sky = default(KeyValuePair<string, uint[]>);
+                foreach (var kvp in bspmodel.Triangles)
+                {
+                    if (kvp.Key == "sky")
+                    {
+                        kvp_sky = kvp;
+                    }
+                    else
+                        submeshCountWithoutSky++;
+                }
+
+                // Create Mesh
+                //var mesh = new Mesh();
+                //mesh.name = string.Format("Model {0}", i);
+                // Submesh Count
+                //mesh.subMeshCount = submeshCountWithoutSky;
+                //mesh_renderer.materials = new Material[model.Triangles.Count];
+
+                // Create vertices and uv
+                var vertices = new List<Vector3>();
+                //var uv = new List<Vector2>();
+                for (int ii = 0; ii < bspmodel.Positions.Length; ii++)
+                {
+                    var p = bspmodel.Positions[ii];
+                    vertices.Add(new Vector3(p.X * GBConstant.G2BScale, p.Y * GBConstant.G2BScale, p.Z * GBConstant.G2BScale));
+
+                    //var t = bspmodel.TextureCoordinates[ii];
+                    //uv.Add(new Vector2(t.x, -t.y));
+                }
+
+                //mesh.SetUVs(0, uv);
+
+                //var materials = new Material[submeshCountWithoutSky];
+
+                int submesh = 0;
+                List<int> triangles = new List<int>();
+                foreach (var kvp in bspmodel.Triangles)
+                {
+                    if (kvp.Key == "sky")
+                        continue;
+
+                    var indices = new int[kvp.Value.Length];
+                    for (int ii = 0; ii < indices.Length; ii += 3)
+                    {
+                        //indices[ii + 0] = (int)kvp.Value[ii + 0];
+                        //indices[ii + 1] = (int)kvp.Value[ii + 1];
+                        //indices[ii + 2] = (int)kvp.Value[ii + 2];
+                        triangles.Add((int)kvp.Value[ii + 0]);
+                        triangles.Add((int)kvp.Value[ii + 1]);
+                        triangles.Add((int)kvp.Value[ii + 2]);
+                    }
+                    //mesh.SetTriangles(indices, submesh: submesh);
+
+                    submesh++;
+                }
+                var meshShape = new BvhTriangleMeshShape(new TriangleIndexVertexArray(triangles, vertices), true);
+                shapes.Add(meshShape);
+
+            }
+            foreach (var shape in shapes)
+            {
+                PhysicsHelper.CreateStaticBody(Matrix.Translation(0, 0, 0), shape, World);
+            }
+        }
+        
 
         public void Dispose()
         {
-            foreach (var ragdoll in _physicsObject)
+            foreach (var obj in _physicsObject)
             {
-                ragdoll.Dispose();
+                obj.Dispose();
             }
 
-            this.StandardCleanup();
+            //this.StandardCleanup();
         }
-
-        private void CreateGround()
-        {
-            var groundShape = new BoxShape(100, 10, 100);
-            Matrix groundTransform = Matrix.Translation(0, -10, 0);
-            RigidBody ground = PhysicsHelper.CreateStaticBody(groundTransform, groundShape, World);
-            ground.UserObject = "Ground";
-        }
-
-        public void SpawnRagdoll(Vector3 startOffset)
-        {
-            var ragdoll = new Ragdoll(World, startOffset);
-        }
-        public void SpawnRagdoll(int ptr)
-        {
-            GoldsrcRagdoll goldsrcRagdoll = new GoldsrcRagdoll() { Pointer = ptr, BRagdoll = new Ragdoll(World, Vector3.One) };
-            _physicsObject.Add(goldsrcRagdoll);
-        }
-
-
 
         #region CleanUp
         public static void StandardCleanup(ISimulation simulation)

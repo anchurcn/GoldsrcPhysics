@@ -31,6 +31,8 @@ namespace GoldsrcPhysics
 
     internal sealed class Ragdoll : IDisposable
     {
+
+        #region BodyShapes
         static CollisionShape ShapesPelvis = new CapsuleShape(0.15f, 0.20f);
         static CollisionShape ShapesSpine = new CapsuleShape(0.15f, 0.28f);
         static CollisionShape ShapesHead = new CapsuleShape(0.10f, 0.05f);
@@ -42,22 +44,67 @@ namespace GoldsrcPhysics
         static CollisionShape ShapesLeftLowerArm= new CapsuleShape(0.04f, 0.25f);
         static CollisionShape ShapesRightUpperArm = new CapsuleShape(0.05f, 0.33f);
         static CollisionShape ShapesRightLowerArm = new CapsuleShape(0.04f, 0.25f);
+        #endregion
+
+        static Matrix[] RelativedTransform = new Matrix[(int)BodyPart.Count];
+        static Ragdoll()
+        {
+            Matrix pelvisInverse = Matrix.Translation(0, 1, 0);
+            pelvisInverse.Invert();
+            Matrix transform;
+
+            transform = Matrix.Translation(0, 1.2f, 0);
+            RelativedTransform[(int)BodyPart.Spine] = transform * pelvisInverse;
+
+            transform = Matrix.Translation(0, 1.6f, 0);
+            RelativedTransform[(int)BodyPart.Head] = transform * pelvisInverse;
+
+            transform = Matrix.Translation(-0.18f, 0.65f, 0);
+            RelativedTransform[(int)BodyPart.LeftUpperLeg] = transform * pelvisInverse;
+
+            transform = Matrix.Translation(-0.18f, 0.2f, 0);
+            RelativedTransform[(int)BodyPart.LeftLowerLeg] = transform * pelvisInverse;
+
+            transform = Matrix.Translation(0.18f, 0.65f, 0);
+            RelativedTransform[(int)BodyPart.RightUpperLeg] = transform * pelvisInverse;
+
+            transform = Matrix.Translation(0.18f, 0.2f, 0);
+            RelativedTransform[(int)BodyPart.RightLowerLeg] = transform * pelvisInverse;
+
+            transform = Matrix.RotationZ(PI_2) * Matrix.Translation(-0.35f, 1.45f, 0);
+            RelativedTransform[(int)BodyPart.LeftUpperArm] = transform * pelvisInverse;
+
+            transform = Matrix.RotationZ(PI_2) * Matrix.Translation(-0.7f, 1.45f, 0);
+            RelativedTransform[(int)BodyPart.LeftLowerArm] = transform * pelvisInverse;
+
+            transform = Matrix.RotationZ(-PI_2) * Matrix.Translation(0.35f, 1.45f, 0);
+            RelativedTransform[(int)BodyPart.RightUpperArm] = transform * pelvisInverse;
+
+            transform = Matrix.RotationZ(-PI_2) * Matrix.Translation(0.7f, 1.45f, 0);
+            RelativedTransform[(int)BodyPart.RightLowerArm] = transform * pelvisInverse;
+
+        }
+
 
         private const float ConstraintDebugSize = 0.2f;
         private const float PI_2 = (float)Math.PI / 2;
         private const float PI_4 = (float)Math.PI / 4;
+        private const float mass = 1;
 
         private DynamicsWorld _world;
         private CollisionShape[] _shapes = new CollisionShape[(int)BodyPart.Count];
         public RigidBody[] _bodies = new RigidBody[(int)BodyPart.Count];
         private TypedConstraint[] _joints = new TypedConstraint[(int)Joint.Count];
 
+
+
         public Ragdoll(DynamicsWorld ownerWorld, Vector3 positionOffset)
         {
             _world = ownerWorld;
 
             SetupShapes();
-            SetupBodies(positionOffset);
+            Matrix offset = Matrix.RotationX(1.57f) * Matrix.RotationZ(1.57f) * Matrix.Translation(positionOffset);
+            SetupBodies(offset);
             SetupConstraints();
         }
 
@@ -140,6 +187,34 @@ namespace GoldsrcPhysics
                 body.DeactivationTime = 0.8f;
                 body.SetSleepingThresholds(1.6f, 2.5f);
             }
+        }
+
+        void SetupBodies(Matrix ragdollTrans)
+        {
+            //offset = Matrix.RotationZ(1.57f)*offset;
+            Matrix transform, pelvisTrans = Matrix.Identity;
+            for (int i = 0; i < RelativedTransform.Length; i++)
+            {
+                if (i == 0)
+                {
+                    pelvisTrans = ragdollTrans * Matrix.Translation(0, 1, 0);
+                    _bodies[(int)BodyPart.Pelvis] = CreateBody(mass, pelvisTrans, _shapes[(int)BodyPart.Pelvis]);
+                }
+                else
+                {
+                    transform = RelativedTransform[i] * pelvisTrans;
+                    _bodies[i] = CreateBody(mass, transform, _shapes[i]);
+                }
+            }
+
+            // Some damping on the bodies
+            foreach (RigidBody body in _bodies)
+            {
+                body.SetDamping(0.05f, 0.85f);
+                body.DeactivationTime = 0.8f;
+                body.SetSleepingThresholds(1.6f, 2.5f);
+            }
+
         }
 
         private void SetupConstraints()

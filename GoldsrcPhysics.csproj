@@ -50,6 +50,10 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="BspLib, Version=1.0.7015.27220, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\BspLib.dll</HintPath>
+    </Reference>
     <Reference Include="BulletSharp">
       <HintPath>..\BulletSharpPInvoke-0.11\BulletSharp\bin\Debug\BulletSharp.dll</HintPath>
     </Reference>
@@ -66,10 +70,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GoldsrcRagdoll.cs" />
+    <Compile Include="GoldsrcPhysicsUtilities.cs" />
+    <Compile Include="InteractionObject\GoldsrcBox.cs" />
+    <Compile Include="InteractionObject\GoldsrcRagdoll.cs" />
+    <Compile Include="LoopTimer.cs" />
     <Compile Include="PhysicsMain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Ragdoll.cs" />
+    <Compile Include="InteractionObject\Ragdoll.cs" />
     <Compile Include="Simulation.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
