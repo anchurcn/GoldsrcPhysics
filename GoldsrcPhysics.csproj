@@ -55,10 +55,10 @@
       <HintPath>.\BspLib.dll</HintPath>
     </Reference>
     <Reference Include="BulletSharp">
-      <HintPath>..\BulletSharpPInvoke-0.11\BulletSharp\bin\Debug\BulletSharp.dll</HintPath>
+      <HintPath>..\..\..\Downloads\bulletsharp-pinvoke-demos-0.11\BulletSharp.dll</HintPath>
     </Reference>
     <Reference Include="DemoFramework">
-      <HintPath>..\BulletSharpPInvoke-0.11\BulletSharp\demos\DemoFramework\obj\Debug\DemoFramework.dll</HintPath>
+      <HintPath>..\..\..\Downloads\BulletSharpPInvoke-0.11\BulletSharp\demos\bin\Debug\DemoFramework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

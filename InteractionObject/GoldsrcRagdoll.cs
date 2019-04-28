@@ -19,27 +19,41 @@ namespace GoldsrcPhysics
         Matrix[] OriginalRelatedTransformInverse;//子身体部分相对父部分的变换矩阵的逆，用于计算相对变换的变换量（弃用的）
         Matrix[] OriginalInverseTransforms;// bodypart世界变化矩阵的逆，用于计算实时变换分量
 
+        Matrix[] OrigingalStudioRelativedTransformsInverse;//用于计算相对变化偏移量
+        Matrix[] OriginalStudioParentTransformsInverse;//studio原始父世界变换的逆，用于计算相对变换
         public GoldsrcRagdoll(DynamicsWorld world)
         {
             BRagdoll = new Ragdoll(world,GBConstant.G2BScale*StudioPositions[127]);
             OriginalRelatedTransformInverse = new Matrix[(int)BodyPart.Count];
-            Matrix inverse;
-            for (int i = 1; i < (int)BodyPart.Count; i++)
-            {
+            //Matrix inverse;
+            //物理端
+            //for (int i = 1; i < (int)BodyPart.Count; i++)
+            //{
 
-                inverse = BRagdoll._bodies[(int)GetParentPart(i)].WorldTransform;
-                inverse.Invert();
-                OriginalRelatedTransformInverse[i] = inverse * BRagdoll._bodies[i].WorldTransform;
-            }
-            OriginalRelatedTransformInverse[0] = BRagdoll._bodies[0].WorldTransform;
-            foreach (var i in OriginalRelatedTransformInverse)
-            {
-                i.Invert();
-            }
+            //    inverse = BRagdoll._bodies[(int)GetParentPart(i)].WorldTransform;
+            //    inverse.Invert();
+            //    OriginalRelatedTransformInverse[i] = inverse * BRagdoll._bodies[i].WorldTransform;
+            //}
+            OriginalRelatedTransformInverse[0] = BRagdoll._bodies[0].WorldTransform.GetInverse();
+
+            //TODO 计算每个rigidbody的初始世界变换的逆
             OriginalInverseTransforms = new Matrix[(int)BodyPart.Count];
+            for (int i = 0; i < (int)BodyPart.Count; i++)
+            {
+                OriginalInverseTransforms[(int)IndexBodyPart[i].Item2] = 
+                    BRagdoll._bodies[(int)IndexBodyPart[i].Item2].WorldTransform.GetInverse();
+            }
+            //studio原始相对变化的逆，用于计算相对变换偏移量（q）
+            OrigingalStudioRelativedTransformsInverse = new Matrix[(int)BodyPart.Count];
             for (int i = 1; i < (int)BodyPart.Count; i++)
             {
-                OriginalInverseTransforms[i] = BRagdoll._bodies[i].WorldTransform.GetInverse();
+                OriginalStudioParentTransformsInverse[i] =
+                    StudioBoneMatrices[GetParentIndex(IndexBodyPart[i].Item1)].GetInverse();
+                OrigingalStudioRelativedTransformsInverse[i] =
+                    (
+                        StudioBoneMatrices[IndexBodyPart[i].Item1] *
+                        OriginalStudioParentTransformsInverse[i]
+                    ).GetInverse();
             }
         }
         
@@ -49,26 +63,37 @@ namespace GoldsrcPhysics
         }
         public void UpdateRagdoll()
         {
-            Matrix inverse;
-                Quaternion rotation;
-                Vector3 scale;
-                Vector3 translation;
+            //Matrix inverse;
+            //Quaternion rotation;
+            //Vector3 scale;
+            //Vector3 translation;
             Matrix result;
             for (int i = 1; i < IndexBodyPart.Length; i++)
             {
-                inverse = BRagdoll._bodies[(int)GetParentPart((int)IndexBodyPart[i].Item2)].WorldTransform;
-                inverse.Invert();
-                result = inverse * BRagdoll._bodies[(int)IndexBodyPart[i].Item2].WorldTransform;//relatived transform
-                result = OriginalRelatedTransformInverse[(int)IndexBodyPart[i].Item2] * result;
-                result.Decompose(out scale, out rotation, out translation);
+                //inverse = BRagdoll._bodies[(int)GetParentPart((int)IndexBodyPart[i].Item2)].WorldTransform;
+                //inverse.Invert();
+                //result = inverse * BRagdoll._bodies[(int)IndexBodyPart[i].Item2].WorldTransform;//relatived transform
+                //result = OriginalRelatedTransformInverse[(int)IndexBodyPart[i].Item2] * result;
+                //result.Decompose(out scale, out rotation, out translation);
+                //StudioQuaternions[IndexBodyPart[i].Item1] = rotation * StudioQuaternions[IndexBodyPart[i].Item1];
+
+                //计算物理引擎世界变换偏移量
+                var worldOffset = BRagdoll._bodies[(int)IndexBodyPart[i].Item2].WorldTransform *
+                    OriginalInverseTransforms[(int)IndexBodyPart[i].Item2];
+                //应用到goldsrc世界变换
+                StudioBoneMatrices[IndexBodyPart[i].Item1] =worldOffset* StudioBoneMatrices[IndexBodyPart[i].Item1];
+                //计算物理更新后的相对变换
+                var relativedTransf = StudioBoneMatrices[IndexBodyPart[i].Item1] * OriginalStudioParentTransformsInverse[i];
+                //计算相对变换偏移量，分解出quaternion
+                var rotation = (relativedTransf * OrigingalStudioRelativedTransformsInverse[IndexBodyPart[i].Item1]).DecomQuat();
+                //赋值
                 StudioQuaternions[IndexBodyPart[i].Item1] = rotation * StudioQuaternions[IndexBodyPart[i].Item1];
             }
             result = BRagdoll._bodies[(int)BodyPart.Pelvis].WorldTransform * OriginalRelatedTransformInverse[0];
             StudioQuaternions[1] = result.DecomQuat();
             var origOffset = BRagdoll._bodies[0].WorldTransform.Origin - OriginalRelatedTransformInverse[0].Origin;
             StudioPositions[1] += GBConstant.B2GScale*new Vector3(-origOffset.X,origOffset.Y,origOffset.Z);
-            var testresult = StudioBoneMatrices[1, 0, 3];
-            Console.WriteLine();
+
         }
         
         public void Dispose()
@@ -111,7 +136,7 @@ namespace GoldsrcPhysics
             switch(i)
             {
                 case 1:
-                    break;
+                    throw new Exception("Pelvis has no parent");
                 case 2:
                     p = 1;
                     break;
