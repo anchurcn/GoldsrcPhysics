@@ -1,5 +1,4 @@
-﻿using BulletSharp.Math;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace GoldsrcPhysics
 {
-    public static class GoldsrcPhysicsUtilities
+    /// <summary>
+    /// 裙子，挂件，枪上的弹链...
+    /// </summary>
+    class Attachment
     {
-        
     }
 }

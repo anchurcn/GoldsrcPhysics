@@ -55,13 +55,14 @@
       <HintPath>.\BspLib.dll</HintPath>
     </Reference>
     <Reference Include="BulletSharp">
-      <HintPath>..\BulletSharpPInvoke-0.11\BulletSharp\bin\Debug\BulletSharp.dll</HintPath>
+      <HintPath>..\..\..\Downloads\bulletsharp-pinvoke-demos-0.11\BulletSharp.dll</HintPath>
     </Reference>
     <Reference Include="DemoFramework">
-      <HintPath>..\BulletSharpPInvoke-0.11\BulletSharp\demos\DemoFramework\obj\Debug\DemoFramework.dll</HintPath>
+      <HintPath>..\..\..\Downloads\BulletSharpPInvoke-0.11\BulletSharp\demos\bin\Debug\DemoFramework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -70,14 +71,44 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attachment.cs" />
+    <Compile Include="BodyPicker.cs" />
+    <Compile Include="BoneAccessor.cs" />
+    <Compile Include="BRagdoll.cs" />
+    <Compile Include="BRigidbody.cs" />
+    <Compile Include="BWorld.cs" />
+    <Compile Include="Debug.cs" />
+    <Compile Include="DrawContext.cs" />
     <Compile Include="GoldsrcPhysicsUtilities.cs" />
+    <Compile Include="Goldsrc\ComModel_h.cs" />
+    <Compile Include="Goldsrc\Custom_h.cs" />
+    <Compile Include="Goldsrc\GoldsrcDefaultDrawContext.cs" />
+    <Compile Include="Goldsrc\Matrix34f.cs" />
+    <Compile Include="Goldsrc\Structures.cs" />
+    <Compile Include="Goldsrc\StudioRenderer.cs" />
+    <Compile Include="Goldsrc\Studio_h.cs" />
     <Compile Include="InteractionObject\GoldsrcBox.cs" />
     <Compile Include="InteractionObject\GoldsrcRagdoll.cs" />
+    <Compile Include="InteractionObject\PhysicsBehaviour.cs" />
+    <Compile Include="LinearMath\BulletMathUtils.cs" />
+    <Compile Include="LinearMath\MathUtil.cs" />
+    <Compile Include="LinearMath\Matrix.cs" />
+    <Compile Include="LinearMath\Quaternion.cs" />
+    <Compile Include="LinearMath\Vector3.cs" />
+    <Compile Include="LinearMath\Vector4.cs" />
     <Compile Include="LoopTimer.cs" />
-    <Compile Include="PhysicsMain.cs" />
+    <Compile Include="ExportAPIs\PhysicsMain.cs" />
+    <Compile Include="PhyConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="InteractionObject\Ragdoll.cs" />
+    <Compile Include="RagdollBuilder.cs" />
+    <Compile Include="ExportAPIs\RagdollAPI.cs" />
+    <Compile Include="RagdollManager.cs" />
     <Compile Include="Simulation.cs" />
+    <Compile Include="ExportAPIs\TestAPI.cs" />
+    <Compile Include="Utils\BulletHelper.cs" />
+    <Compile Include="Utils\MathExtensions.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

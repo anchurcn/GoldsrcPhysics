@@ -90,7 +90,7 @@ namespace GoldsrcPhysics
         private const float PI_2 = (float)Math.PI / 2;
         private const float PI_4 = (float)Math.PI / 4;
         private const float mass = 1;
-
+         
         private DynamicsWorld _world;
         private CollisionShape[] _shapes = new CollisionShape[(int)BodyPart.Count];
         public RigidBody[] _bodies = new RigidBody[(int)BodyPart.Count];
@@ -312,7 +312,7 @@ namespace GoldsrcPhysics
             cone.DebugDrawSize = ConstraintDebugSize;
 
             _world.AddConstraint(_joints[(int)Joint.RightShoulder], true);
-
+            
 
             localA = Matrix.RotationYawPitchRoll(PI_2, 0, 0) * Matrix.Translation(0, 0.18f, 0);
             localB = Matrix.RotationYawPitchRoll(PI_2, 0, 0) * Matrix.Translation(0, -0.14f, 0);
