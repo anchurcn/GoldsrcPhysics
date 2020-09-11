@@ -4,7 +4,6 @@ using GoldsrcPhysics.Goldsrc;
 using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.Serialization.Json;
 
@@ -16,9 +15,9 @@ namespace GoldsrcPhysics
     /// 
     /// 在此维护一个RagdollData缓存，根据算法构造的RagdollData的Key=ModelName+nameof（BuildOption）
     /// </summary>
-    class RagdollBuilder
+    public class RagdollBuilder
     {
-        internal enum BodyPart
+        public enum BodyPart
         {
             Head,
             //Spine,
@@ -37,16 +36,28 @@ namespace GoldsrcPhysics
             //RightFoot,
             Count
         };
-        internal enum BuildOption
+        public enum BuildOption
         {
+            /// <summary>
+            /// Default option on physics.cfg
+            /// </summary>
             Default,
+            /// <summary>
+            /// build from file that contains colliders and constraints, [.phy file]
+            /// </summary>
             FromFile,
+            /// <summary>
+            /// Build via algorithm that create a bipped ragdoll
+            /// </summary>
             Bipped,
+            /// <summary>
+            /// Build via algorithm that create a bipped ragdoll
+            /// </summary>
             Spider
         }
-        public static BRagdoll Build(string modelName, BuildOption buildOption, BuildOption fallBackOption = BuildOption.Default)
+        public static Ragdoll Build(string modelName, BuildOption buildOption, BuildOption fallBackOption = BuildOption.Default)
         {
-            BRagdoll result = null;
+            Ragdoll result = null;
             result = Build(modelName, buildOption);
             if (result == null)
             {
@@ -55,12 +66,14 @@ namespace GoldsrcPhysics
             }
             return result;
         }
-        public static BRagdoll Build(string modelName, BuildOption buildOption)
+        public static Ragdoll Build(string modelName, BuildOption buildOption)
         {
             switch (buildOption)
             {
                 case BuildOption.Default:
-                    return Build(modelName, (BuildOption)Enum.Parse(buildOption.GetType(), PhyConfiguration.GetValue("BuildOption")));
+                    var defultOption = PhyConfiguration.GetValue("BuildOption");
+                    Debug.LogLine("Default ragdoll build option is [{0}]", defultOption);
+                    return Build(modelName, (BuildOption)Enum.Parse(buildOption.GetType(),defultOption));
                 case BuildOption.FromFile:
                     break;
                 case BuildOption.Bipped:
@@ -93,9 +106,9 @@ namespace GoldsrcPhysics
         //		   /			   /
         //		 3 ------------- 0
         //           width/length
-        private static BRagdoll BuildBipped(BippedBone info)
+        private static Ragdoll BuildBipped(BippedBone info)
         {
-            Debug.LogLine("Build Bipped...");
+            Debug.LogLine("Bipped build begin...");
             BoneAccessor accessor = BoneAccessor.GetCurrent();
             var listKeybone = new List<int>()
             {
@@ -122,7 +135,7 @@ namespace GoldsrcPhysics
                 if (!listKeybone.Contains(i))
                     listNonKeybone.Add(i);
             }
-            var ragdoll = new BRagdoll()
+            var ragdoll = new Ragdoll()
             {
                 BodyParts = new RigidBody[(int)BodyPart.Count],
                 Constraints = new TypedConstraint[9],
@@ -217,22 +230,32 @@ namespace GoldsrcPhysics
             ragdoll.Constraints[7] = CreateJoint(bodys[(int)BodyPart.LeftKnee], bodys[(int)BodyPart.LeftHip], lKnee);
             ragdoll.Constraints[8] = CreateJoint(bodys[(int)BodyPart.LeftKnee], bodys[(int)BodyPart.RightHip], rKnee);
 
-            Debug.LogLine("Build Bipped complete.");
+            foreach (var i in ragdoll.BodyParts)
+            {
+                i.SetDamping(0.05f, 0.85f);
+                i.DeactivationTime = 0.8f;
+                i.SetSleepingThresholds(1.6f, 2.5f);
+            }
+            Debug.LogLine("Bipped build complete.");
             return ragdoll;
         }
-        private static TypedConstraint CreateJoint(RigidBody bodyA, RigidBody bodyB, in Vector3 pivot)
+        public static TypedConstraint CreateJoint(RigidBody bodyA, RigidBody bodyB, in Vector3 pivot)
         {
             var pivotInA = bodyA.TransformToLocal(in pivot);
             var pivotInB = bodyB.TransformToLocal(in pivot);
             return new Point2PointConstraint(bodyA, bodyB, pivotInA, pivotInB);
+            //TODO:disable collisions between bodies connected with the constraint. This will done at World.AddConstraint
         }
-        private static RigidBody CreateLimb(ref Matrix bone, Vector3 child, float radius)
+        public static RigidBody CreateLimb(ref Matrix bone, Vector3 child, float radius)
         {
             var len = (bone.Origin - child).Length;
             var shape = new CapsuleShape(radius, len);
             var rigidTrans = BulletMathUtils.CenterOf(bone.Origin, child).LookAt(child, Vector3.UnitY);
 
-            var mass = 1.0f;//TODO: auto calc mass via shape volumn
+            var mass = 1;// auto calc mass via shape volumn. (may have better algorithm)
+            // Update Tip:because of Simulation becomes unstable when a heavy object is resting on a very light object. 
+            // It is best to keep the mass around 1.This means accurate interaction between a tank and a very light object is not realistic. 
+            // So we just simply set the mass to 1.
             return BulletHelper.CreateBoneRigidbody(mass, ref bone, ref rigidTrans, shape);
         }
     }

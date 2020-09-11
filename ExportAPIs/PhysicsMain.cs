@@ -2,45 +2,109 @@
 using BulletSharp;
 using BulletSharp.Math;
 using DemoFramework;
+using GoldsrcPhysics.ExportAPIs;
 using GoldsrcPhysics.Goldsrc;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.AccessControl;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace GoldsrcPhysics
 {
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate void InitDelegate(IntPtr p);
     
-    public class PhysicsMain//Provide the interface to goldsrc that can access to
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate void DoWork();
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate void UpdateDelegate(float delta);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PhysicsAPI
+    {
+        [MarshalAs( UnmanagedType.FunctionPtr)]
+        public InitDelegate InitSystem;
+
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        public UpdateDelegate Update;
+
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        public DoWork Test;
+    }
+    /// <summary>
+    /// Provide the interface to goldsrc that can access to
+    /// </summary>
+    public class PhysicsMain
     {
         internal static RagdollManager RagdollManager { get; set; }
-        private static LocalPlayerBodyPicker LocalPicker { get; set; }
+        private static LocalPlayerBodyPicker LocalBodyPicker { get; set; }
 
-        private static List<RigidBody> Scene { get; } = new List<RigidBody>();
+        private static List<RigidBody> SceneStaticObjects { get; } = new List<RigidBody>();
+
+        #region RegisterPhysicsAPI
+        //purpose of this region: called by native code and write the API function pointer for native 
+
+        // Holds the api instance avoid being garbage collected
+        private static PhysicsAPI API;
+
+        /// <summary>
+        /// Register APIs
+        /// </summary>
+        /// <param name="physicsAPI">[in]</param>
+        [DllImport("client.dll")]
+        private static extern void RegisterAPI(ref PhysicsAPI physicsAPI);
+
+        public static int InitPhysicsInterface(string msg)
+        {
+            Debug.LogLine("Welcome to goldsrc physics. host msg:\"{0}\"", msg);
+            var moddir=PhyConfiguration.GetValue("ModDir");
+            Environment.SetEnvironmentVariable("Path", Path.Combine(moddir, "cl_dlls"));
+            API = new PhysicsAPI()
+            {
+                InitSystem = InitSystem,
+                Update = Update,
+                Test = TestAPI.Test
+            };
+            RegisterAPI(ref API);
+            return 0;
+        }
+
+        /// <summary>
+        /// Fill the struct with API function pointer.
+        /// But in older version of CLR host, it can't call this function directly. 
+        /// You should use InitPhysicsInterface instead, and implement RegisterAPI in your native host to save physicsAPI for future use.
+        /// </summary>
+        /// <param name="physicsAPI">[out]</param>
+        public static void GetPhysicsInterface(ref PhysicsAPI physicsAPI)
+        {
+            physicsAPI.InitSystem = InitSystem;
+            physicsAPI.Update = Update;
+            physicsAPI.Test = TestAPI.Test;
+        }
+        #endregion
 
         public static void InitSystem(IntPtr pStudioRenderer)
         {
-            //注册金源引擎的各种变量
+            //register goldsrc global variables
             //拿到金源引擎的API，使物理引擎可以访问缓存的模型信息、地图信息等
             BWorld.CreateInstance();
             StudioRenderer.Init(pStudioRenderer);
             StudioRenderer.Drawer = BWorld.Instance.DebugDrawer;
             RagdollManager = new RagdollManager();
-            LocalPicker = new LocalPlayerBodyPicker();
+            LocalBodyPicker = new LocalPlayerBodyPicker();
         }
         /// <summary>
-        /// 加载地图
+        /// Load map
         /// </summary>
-        public static void ChangeLevel()
+        public static void ChangeLevel(string mapName)
         {
-            for (int i = 0; i < Scene.Count; i++)
+            for (int i = 0; i < SceneStaticObjects.Count; i++)
             {
-                BWorld.Instance.RemoveRigidBody(Scene[i]);
+                SceneStaticObjects[i].Dispose();
+                BWorld.Instance.RemoveRigidBody(SceneStaticObjects[i]);
             }
-            LoadScene("crossfire.bps");
+            LoadScene(mapName);
         }
         /// <summary>
         /// 地图不变，内容重置，清理在游戏中动态创建的各种CollisionObjects
@@ -50,11 +114,16 @@ namespace GoldsrcPhysics
         {
 
         }
-        public static void Update()
+
+        /// <summary>
+        /// Physics world update
+        /// </summary>
+        /// <param name="delta"></param>
+        public static void Update(float delta)
         {
             //handling input
             //player's collider pos, bodypicker's pos
-            LocalPicker.Update();
+            LocalBodyPicker.Update();
 
             //physics simulating
             Time.SubStepCount+=BWorld.Instance.StepSimulation(Time.DeltaTime);
@@ -66,7 +135,6 @@ namespace GoldsrcPhysics
                 //just put lines in buffer, then you should draw it on ViewDrawing
             }
             {//normal draw
-                StudioRenderer.DrawCurrentSkeleton();
                 (BWorld.Instance.DebugDrawer as PhysicsDebugDraw).DrawDebugWorld(BWorld.Instance);
             }
         }
@@ -88,21 +156,24 @@ namespace GoldsrcPhysics
         #region BodyPicker
         public static void PickBody()
         {
-            LocalPicker.PickBody();
+            LocalBodyPicker.PickBody();
         }
 
         public static void ReleaseBody()
         {
-            LocalPicker.Release();
+            LocalBodyPicker.Release();
         }
 
         #endregion
 
         #region PrivateMethod
-        public static void LoadScene(string levelName)
+        private static void LoadScene(string levelName)
         {
             var path = PhyConfiguration.GetValue("MapDir");
-            LoadBsp(path + levelName);
+            var filePath = path + levelName + ".bsp";
+            Debug.LogLine("Load map {0}", filePath);
+
+            LoadBsp(filePath);
         }
         static string[] EntityWithInvisableModel =
 {
@@ -211,7 +282,7 @@ namespace GoldsrcPhysics
             }
             foreach (var shape in shapes)
             {
-                Scene.Add( PhysicsHelper.CreateStaticBody(Matrix.Translation(0, 0, 0), shape, BWorld.Instance));
+                SceneStaticObjects.Add( PhysicsHelper.CreateStaticBody(Matrix.Translation(0, 0, 0), shape, BWorld.Instance));
             }
         }
         #endregion

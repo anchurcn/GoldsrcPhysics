@@ -14,7 +14,14 @@ namespace GoldsrcPhysics
         public static string GetValue(string key)
         {
             //return Configuration[key];
-            return Configuration[key];
+            string result = null;
+            if (Configuration.TryGetValue(key, out result))
+                return result;
+            else
+            {
+                Debug.LogLine("Missing Configuration [{0}].", key);
+                return null;
+            }
         }
         static PhyConfiguration()
         {

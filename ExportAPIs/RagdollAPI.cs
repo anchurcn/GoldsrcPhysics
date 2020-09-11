@@ -12,6 +12,24 @@ namespace GoldsrcPhysics.ExportAPIs
     public static class RagdollAPI
     {
         private static RagdollManager Manager { get => PhysicsMain.RagdollManager; }
+
+        public static void CreateRagdollController(int entityId, string modelName)
+        {
+            Manager.CreateRagdollController(entityId, modelName);
+        }
+        public static void StartRagdoll(int entityId)
+        {
+            Manager.StartRagdoll(entityId);
+        }
+        public static void StopRagdoll(int entityId)
+        {
+            Manager.StopRagdoll(entityId);
+        }
+        public static void SetupBonesPhysically(int entityId)
+        {
+            Manager.SetupBonesPhysically(entityId);
+        }
+
     }
     public static class PhysicsFileProvider
     {

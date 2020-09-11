@@ -13,7 +13,7 @@ namespace GoldsrcPhysics
       2.玩家加入游戏时构造布娃娃对象（刚体，约束），但此时并不添加进物理世界
       3.玩家死亡时将之前构造的布娃娃对象激活（Enable），下一帧布娃娃开始接管骨骼控制
      */
-
+     
     
     public class RagdollData
     {
@@ -51,7 +51,7 @@ namespace GoldsrcPhysics
     /// provide methods to control goldsrc animations
     /// only used when current model being rendered is your target being controlled
     /// </summary>
-    public unsafe class BRagdoll
+    public unsafe class Ragdoll
     {
         public int EntityId;
         public Matrix34f[] BoneRelativeTransform;
@@ -62,7 +62,7 @@ namespace GoldsrcPhysics
         bool Enabled = false;
         DynamicsWorld World = BWorld.Instance;
 
-        public BRagdoll()
+        public Ragdoll()
         {
             
         }

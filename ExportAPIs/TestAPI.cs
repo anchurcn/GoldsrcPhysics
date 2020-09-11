@@ -1,15 +1,17 @@
-﻿using System;
+﻿using GoldsrcPhysics.Goldsrc;
+using System;
 
 namespace GoldsrcPhysics.ExportAPIs
 {
-    public static class TestAPI
+    public unsafe static class TestAPI
     {
         static bool Initialized = false;
-        static int LastSeq;
-        static int Attack = 24;
-        static int Pistol = 25;
-        static int CurSeq;
         static bool AddPlayer = true;
+        static int LastSeq;
+        static int CurSeq=>StudioRenderer.NativePointer->m_pCurrentEntity->curstate.sequence;
+        //25 拿着撬棍
+        static int Attack = 26;//撬棍攻击
+        static int Pistol = 33;//拿着手枪
 
         /// <summary>
         /// calls on player render
@@ -18,7 +20,7 @@ namespace GoldsrcPhysics.ExportAPIs
         /// </summary>
         /// <param name="arg"></param>
         /// <returns></returns>
-        public static int Test(string modelName)
+        public static void Test()
         {
             //if(!isPlayer)
             //return 0;
@@ -26,13 +28,15 @@ namespace GoldsrcPhysics.ExportAPIs
             if(!Initialized)
             {
                 //precache ragdoll data
-                PhysicsFileProvider.PreCache(modelName);
+                //PhysicsFileProvider.PreCache(modelName);
+                PhysicsMain.ChangeLevel("crossfire");
                 Initialized = true;
-                return 0;
+                return;
             }
             if(AddPlayer)
             {
                 //new ragdoll
+                RagdollAPI.CreateRagdollController(StudioRenderer.EntityId, "gordon");
                 AddPlayer = false;
             }
 
@@ -52,17 +56,19 @@ namespace GoldsrcPhysics.ExportAPIs
             if(LastSeq!=Pistol&&CurSeq==Pistol)
             {
                 //enable ragdoll
+                RagdollAPI.StartRagdoll(StudioRenderer.EntityId);
             }
             else if(LastSeq==Pistol&&CurSeq==Pistol)
             {
                 //update bone 
+                RagdollAPI.SetupBonesPhysically(StudioRenderer.EntityId);
             }
             else if(LastSeq==Pistol&&CurSeq!=Pistol)
             {
                 //disable ragdoll
+                RagdollAPI.StopRagdoll(StudioRenderer.EntityId);
             }
             LastSeq = CurSeq;
-            return 0;
         }
     }
 }

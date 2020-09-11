@@ -1,0 +1,5 @@
+# 地图路径
+MapDir:
+# 默认布娃娃构造设置
+BuildOption:
+#

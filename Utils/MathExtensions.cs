@@ -26,6 +26,11 @@ namespace GoldsrcPhysics.Utils
             BulletMathUtils.MatrixLookAt(ref self, in worldPoint, in forward);
             return self;
         }
+        public static Matrix GetInverse(this Matrix matrix)
+        {
+            matrix.Invert();
+            return matrix;
+        }
         public static Vector3 TransformToLocal(this RigidBody body,in Vector3 worldPoint)
         {
             Vector3 result = Vector3.Zero;

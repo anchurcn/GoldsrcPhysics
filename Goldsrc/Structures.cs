@@ -39,25 +39,25 @@ namespace GoldsrcPhysics.Goldsrc
 
 			public bool player;     // True if this entity is a "player"
 
-			entity_state_t baseline;   // The original state from which to delta during an uncompressed message
-			entity_state_t prevstate;  // The state information from the penultimate message received from the server
-			entity_state_t curstate;   // The state information from the last message received from server
+			public entity_state_t baseline;   // The original state from which to delta during an uncompressed message
+			public entity_state_t prevstate;  // The state information from the penultimate message received from the server
+			public entity_state_t curstate;   // The state information from the last message received from server
 
-			int current_position;  // Last received history update index
+			public int current_position;  // Last received history update index
 								   //position_history_t ph[HISTORY_MAX];   // History of position and angle updates for this player
 			fixed float ph[7 * HISTORY_MAX];
 
-			mouth_t mouth;          // For synchronizing mouth movements.
+			public mouth_t mouth;          // For synchronizing mouth movements.
 
 			latchedvars_t latched;      // Variables used by studio model rendering routines
 
 			// Information based on interplocation, extrapolation, prediction, or just copied from last msg received.
 			//
-			float lastmove;
+			public float lastmove;
 
 			// Actual render position and angles
-			Vector3 origin;
-			Vector3 angles;
+			public Vector3 origin;
+			public Vector3 angles;
 
 			// Attachment points
 			fixed float attachment[3 * 4];//vector3[4]
@@ -92,97 +92,97 @@ namespace GoldsrcPhysics.Goldsrc
 		public struct entity_state_t
 		{
 			// Fields which are filled in by routines outside of delta compression
-			int entityType;
-			// Index into cl_entities array for this entity.
-			int number;
-			float msg_time;
-
-			// Message number last time the player/entity state was updated.
-			int messagenum;
-
-			// Fields which can be transitted and reconstructed over the network stream
-			Vector3 origin;
-			Vector3 angles;
-
-			int modelindex;
-			int sequence;
-			float frame;
-			int colormap;
-			short skin;
-			short solid;
-			int effects;
-			float scale;
-
-			byte eflags;
-
-			// Render information
-			int rendermode;
-			int renderamt;
-			color24 rendercolor;
-			int renderfx;
-
-			int movetype;
-			float animtime;
-			float framerate;
-			int body;
-			fixed byte controller[4];
-			fixed byte blending[4];
-			Vector3 velocity;
-
-			// Send bbox down to client for use during prediction.
-			Vector3 mins;
-			Vector3 maxs;
-
-			int aiment;
-			// If owned by a player, the index of that player ( for projectiles ).
-			int owner;
-
-			// Friction, for prediction.
-			float friction;
-			// Gravity multiplier
-			float gravity;
-
-			// PLAYER SPECIFIC
-			int team;
-			int playerclass;
-			int health;
-			bool spectator;
-			int weaponmodel;
-			int gaitsequence;
-			// If standing on conveyor, e.g.
-			Vector3 basevelocity;
-			// Use the crouched hull, or the regular player hull.
-			int usehull;
-			// Latched buttons last time state updated.
-			int oldbuttons;
-			// -1 = in air, else pmove entity number
-			int onground;
-			int iStepLeft;
-			// How fast we are falling
-			float flFallVelocity;
-
-			float fov;
-			int weaponanim;
-
-			// Parametric movement overrides
-			Vector3 startpos;
-			Vector3 endpos;
-			float impacttime;
-			float starttime;
-
-			// For mods
-			int iuser1;
-			int iuser2;
-			int iuser3;
-			int iuser4;
-			float fuser1;
-			float fuser2;
-			float fuser3;
-			float fuser4;
-			Vector3 vuser1;
-			Vector3 vuser2;
-			Vector3 vuser3;
-			Vector3 vuser4;
+			public int entityType;
+			 // Index into cl_entities array for this entity.
+			public int number;
+			public float msg_time;
+			 
+			 // Message number last time the player/entity state was updated.
+			public int messagenum;
+			 
+			 // Fields which can be transitted and reconstructed over the network stream
+			public Vector3 origin;
+			public Vector3 angles;
+			 
+			public int modelindex;
+			public int sequence;
+			public float frame;
+			public int colormap;
+			public short skin;
+			public short solid;
+			public int effects;
+			public float scale;
+			 
+			public byte eflags;
+			 
+			 // Render information
+			public int rendermode;
+			public int renderamt;
+			public color24 rendercolor;
+			public int renderfx;
+			 
+			public int movetype;
+			public float animtime;
+			public float framerate;
+			public int body;
+			public fixed byte controller[4];
+			public fixed byte blending[4];
+			public Vector3 velocity;
+			 
+			 // Send bbox down to client for use during prediction.
+			public Vector3 mins;
+			public Vector3 maxs;
+			 
+			public int aiment;
+			 // If owned by a player, the index of that player ( for projectiles ).
+			public int owner;
+			 
+			 // Friction, for prediction.
+			public float friction;
+			 // Gravity multiplier
+			public float gravity;
+			 
+			 // PLAYER SPECIFIC
+			public int team;
+			public int playerclass;
+			public int health;
+			public bool spectator;
+			public int weaponmodel;
+			public int gaitsequence;
+			 // If standing on conveyor, e.g.
+			public Vector3 basevelocity;
+			 // Use the crouched hull, or the regular player hull.
+			public int usehull;
+			 // Latched buttons last time state updated.
+			public int oldbuttons;
+			 // -1 = in air, else pmove entity number
+			public int onground;
+			public int iStepLeft;
+			 // How fast we are falling
+			public float flFallVelocity;
+			 
+			public float fov;
+			public int weaponanim;
+			 
+			 // Parametric movement overrides
+			public Vector3 startpos;
+			public Vector3 endpos;
+			public float impacttime;
+			public float starttime;
+			 
+			 // For mods
+			public int iuser1;
+			public int iuser2;
+			public int iuser3;
+			public int iuser4;
+			public float fuser1;
+			public float fuser2;
+			public float fuser3;
+			public float fuser4;
+			public Vector3 vuser1;
+			public Vector3 vuser2;
+			public Vector3 vuser3;
+			public Vector3 vuser4;
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
