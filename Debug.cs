@@ -1,7 +1,6 @@
 ﻿using BulletSharp;
 using BulletSharp.Math;
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace GoldsrcPhysics
@@ -10,8 +9,8 @@ namespace GoldsrcPhysics
     {
         public static void LogLine(string format,params object[] args)
         {
-            var log = string.Format(format, args);
-            Console.WriteLine(log);
+            //var log = string.Format(format, args);
+            //Console.WriteLine(log);
         }
     }
     [StructLayout(LayoutKind.Sequential)]
@@ -66,11 +65,11 @@ namespace GoldsrcPhysics
             {
                 Array.Resize(ref _lines, line2Index + 255);
             }
-            from = from * GBConstant.B2GScale;
-            to = to * GBConstant.B2GScale;
-            _lines[LineIndex].Position = from;
+            var scaledFrom = from * GBConstant.B2GScale;
+            var scaledTo = to * GBConstant.B2GScale;
+            _lines[LineIndex].Position = scaledFrom;
             _lines[LineIndex].Color = intColor;
-            _lines[line2Index].Position = to;
+            _lines[line2Index].Position = scaledTo;
             _lines[line2Index].Color = intColor;
 
             LineIndex = line2Index + 1;

@@ -54,9 +54,9 @@ namespace GoldsrcPhysics
     public unsafe class Ragdoll
     {
         public int EntityId;
-        public Matrix34f[] BoneRelativeTransform;
+        public Matrix[] BoneRelativeTransform;
         public RagdollData RagdollData;
-        public RigidBody[] BodyParts;
+        public RigidBody[] RigidBodies;
         public TypedConstraint[] Constraints;
         
         bool Enabled = false;
@@ -79,10 +79,10 @@ namespace GoldsrcPhysics
         public void WritePoseToRenderer()
         {
             //set up keybone, so that the non-key bone can set up using BoneRelativeTransform
-            for (int i = 0; i < BodyParts.Length; i++)
+            for (int i = 0; i < RigidBodies.Length; i++)
             {
-                var body = BodyParts[i];
-                StudioRenderer.BoneTransform[body.UserIndex] = (body.MotionState as BoneMotionState).BoneTransform;
+                var body = RigidBodies[i];
+                StudioRenderer.ScaledBoneTransform[body.UserIndex] = (body.MotionState as BoneMotionState).BoneTransform;
             }
             //set up non-key bone
             for (int index = 0; index < RagdollData.NonKeyBoneIndeces.Count; index++)
@@ -91,9 +91,10 @@ namespace GoldsrcPhysics
                 if (i == -1)// ignore the root
                     continue;
 
-                Matrix34f.ConcatTransforms(in StudioRenderer.NativePointer->m_pbonetransform[StudioRenderer.Bones[i].parent],
-                    in BoneRelativeTransform[i],
-                    out StudioRenderer.NativePointer->m_pbonetransform[i]);
+                //Matrix34f.ConcatTransforms(in StudioRenderer.NativePointer->m_pbonetransform[StudioRenderer.Bones[i].parent],
+                //    in BoneRelativeTransform[i],
+                //    out StudioRenderer.NativePointer->m_pbonetransform[i]);
+                StudioRenderer.ScaledBoneTransform[i] =  BoneRelativeTransform[i]* StudioRenderer.ScaledBoneTransform[StudioRenderer.Bones[i].parent];
             }
         }
 
@@ -107,24 +108,24 @@ namespace GoldsrcPhysics
             //骨骼变换快照
             for (int i = 0; i < StudioRenderer.BoneCount; i++)
             {
-                var bone = StudioRenderer.Bones[i];
-                if (bone.parent==-1)
+                var parent = StudioRenderer.Bones[i].parent;
+                if (parent==-1)
                 {
-                    BoneRelativeTransform[i] = StudioRenderer.BoneTransform[i];
+                    BoneRelativeTransform[i] = StudioRenderer.ScaledBoneTransform[i];
                 }
                 else
                 {
-                    BoneRelativeTransform[i]= StudioRenderer.BoneTransform[i] * 
-                        StudioRenderer.BoneTransform[bone.parent].GetInverse();
+                    BoneRelativeTransform[i]= StudioRenderer.ScaledBoneTransform[i]*
+                        StudioRenderer.ScaledBoneTransform[parent].GetInverse();
                 }
             }
             //初始化刚体变换
-            for (int i = 0; i < BodyParts.Length; i++)
+            for (int i = 0; i < RigidBodies.Length; i++)
             {
                 //先将骨骼变换赋给motionstate
-                (BodyParts[i].MotionState as BoneMotionState).BoneTransform = StudioRenderer.BoneTransform[BodyParts[i].UserIndex];
+                (RigidBodies[i].MotionState as BoneMotionState).BoneTransform = StudioRenderer.ScaledBoneTransform[RigidBodies[i].UserIndex];
                 //刚体变换
-                BodyParts[i].WorldTransform = BodyParts[i].MotionState.WorldTransform;
+                RigidBodies[i].WorldTransform = RigidBodies[i].MotionState.WorldTransform;
             }
         }
         /// <summary>
@@ -136,7 +137,7 @@ namespace GoldsrcPhysics
                 return;
             Enabled = true;
             {//reset body states
-                foreach (var i in BodyParts)
+                foreach (var i in RigidBodies)
                 {
                     i.ClearForces();
                     i.LinearVelocity = Vector3.Zero;
@@ -156,7 +157,7 @@ namespace GoldsrcPhysics
         }
         public void SetVelocity(Vector3 v)
         {
-            foreach (var i in BodyParts)
+            foreach (var i in RigidBodies)
             {
                 i.LinearVelocity = v;
             }
@@ -166,20 +167,20 @@ namespace GoldsrcPhysics
         /// </summary>
         private void AddToWorld()
         {
-            for (int i = 0; i < BodyParts.Length; i++)
+            for (int i = 0; i < RigidBodies.Length; i++)
             {
-                World.AddRigidBody(BodyParts[i]);
+                World.AddRigidBody(RigidBodies[i]);
             }
             for (int i = 0; i < Constraints.Length; i++)
             {
-                World.AddConstraint(Constraints[i]);
+                World.AddConstraint(Constraints[i],true);
             }
         }
         private void RemoveFromWorld()
         {
-            for (int i = 0; i < BodyParts.Length; i++)
+            for (int i = 0; i < RigidBodies.Length; i++)
             {
-                World.RemoveRigidBody(BodyParts[i]);
+                World.RemoveRigidBody(RigidBodies[i]);
             }
             for (int i = 0; i < Constraints.Length; i++)
             {

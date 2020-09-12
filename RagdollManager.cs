@@ -60,7 +60,7 @@ namespace GoldsrcPhysics
         /// <param name="modelName"></param>
         public void CreateRagdollController(int entityId, string modelName)
         {
-            Ragdolls[entityId] = RagdollBuilder.Build(modelName, RagdollBuilder.BuildOption.Bipped);
+            Ragdolls[entityId] = RagdollBuilder.Build(modelName, RagdollBuilder.BuildOption.Default, RagdollBuilder.BuildOption.Bipped);
             if(Ragdolls[entityId]!=null)
                 Register.Add(entityId);
         }

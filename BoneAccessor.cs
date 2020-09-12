@@ -31,23 +31,23 @@ namespace GoldsrcPhysics
 
         public Matrix34f GetLocalTransform(int boneId)
         {
-            return (StudioRenderer.BoneTransform[boneId] * ((Matrix)StudioRenderer.BoneTransform[StudioRenderer.Bones[boneId].parent]).GetInverse())*Scale;
+            return (StudioRenderer.ScaledBoneTransform[boneId] * ((Matrix)StudioRenderer.ScaledBoneTransform[StudioRenderer.Bones[boneId].parent]).GetInverse())*Scale;
         }
         public Matrix34f GetLocalToWorldTransformation(int boneId)
         {
-            return StudioRenderer.BoneTransform[boneId]*Scale;
+            return StudioRenderer.ScaledBoneTransform[boneId]*Scale;
         }
         public Matrix34f GetWorldToLocalTransformation(int boneId)
         {
-            return (((Matrix)StudioRenderer.BoneTransform[boneId]).GetInverse())*Scale;
+            return (((Matrix)StudioRenderer.ScaledBoneTransform[boneId]).GetInverse())*Scale;
         }
         public Vector3 Pos(int boneId)
         {
-            return StudioRenderer.BoneTransform[boneId].Origin*Scale;
+            return StudioRenderer.ScaledBoneTransform[boneId].Origin*Scale;
         }
         public Matrix GetWorldTransform(int boneId)
         {
-            return StudioRenderer.BoneTransform[boneId] * Scale;
+            return StudioRenderer.ScaledBoneTransform[boneId] * Scale;
         }
     }
 }

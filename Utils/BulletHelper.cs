@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace GoldsrcPhysics.Utils
 {
-    public class BulletHelper
+    public static class BulletHelper
     {
         public static RigidBody CreateBoneRigidbody(float mass,ref Matrix boneTrans,ref Matrix rigidTrans, CollisionShape shape)
         {
@@ -30,6 +30,25 @@ namespace GoldsrcPhysics.Utils
                 body = new RigidBody(rbInfo);
             }
             return body;
+        }
+        public static TypedConstraint CreateJoint(RigidBody bodyA, RigidBody bodyB, in Vector3 pivot)
+        {
+            var pivotInA = bodyA.TransformToLocal(in pivot);
+            var pivotInB = bodyB.TransformToLocal(in pivot);
+            return new Point2PointConstraint(bodyA, bodyB, pivotInA, pivotInB);
+            // disable collisions between bodies connected with the constraint. This will done at World.AddConstraint
+        }
+        public static RigidBody CreateLimb(ref Matrix bone, Vector3 child, float radius)
+        {
+            var len = (bone.Origin - child).Length;
+            var shape = new CapsuleShape(radius, len);
+            var rigidTrans = BulletMathUtils.CenterOf(bone.Origin, child).LookAt(child, Vector3.UnitY);
+
+            var mass = 1;// auto calc mass via shape volumn. (may have better algorithm to do this)
+            // Update Tip:because of Simulation becomes unstable when a heavy object is resting on a very light object. 
+            // It is best to keep the mass around 1.This means accurate interaction between a tank and a very light object is not realistic. 
+            // So we just simply set the mass to 1.
+            return CreateBoneRigidbody(mass, ref bone, ref rigidTrans, shape);
         }
     }
 }

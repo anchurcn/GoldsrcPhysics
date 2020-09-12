@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Json;
+using static GoldsrcPhysics.Utils.BulletHelper;
 
 namespace GoldsrcPhysics
 {
@@ -13,7 +14,8 @@ namespace GoldsrcPhysics
     /// 这个类提供了构造布娃娃的方法，可以通过模型信息或者额外文件构造布娃娃的相关数据（碰撞体，各种变换）
     /// 如果构造出来的对象为null，则说明此模型在此构建配置中不支持布娃娃。
     /// 
-    /// 在此维护一个RagdollData缓存，根据算法构造的RagdollData的Key=ModelName+nameof（BuildOption）
+    /// 在此可以维护一个RagdollData缓存，已经生成过的布娃娃数据可以缓存起来；
+    /// 根据算法构造的RagdollData的Key = ModelName + nameof（BuildOption）
     /// </summary>
     public class RagdollBuilder
     {
@@ -57,11 +59,10 @@ namespace GoldsrcPhysics
         }
         public static Ragdoll Build(string modelName, BuildOption buildOption, BuildOption fallBackOption = BuildOption.Default)
         {
-            Ragdoll result = null;
-            result = Build(modelName, buildOption);
+            Ragdoll result = Build(modelName, buildOption);
             if (result == null)
             {
-                Debug.LogLine("Now use fall back option");
+                Debug.LogLine("Now use fall back option to build ragdoll for {0}.mdl",modelName);
                 result = Build(modelName, fallBackOption);
             }
             return result;
@@ -137,9 +138,9 @@ namespace GoldsrcPhysics
             }
             var ragdoll = new Ragdoll()
             {
-                BodyParts = new RigidBody[(int)BodyPart.Count],
+                RigidBodies = new RigidBody[(int)BodyPart.Count],
                 Constraints = new TypedConstraint[9],
-                BoneRelativeTransform = new Matrix34f[accessor.BoneCount],
+                BoneRelativeTransform = new Matrix[accessor.BoneCount],
                 EntityId = StudioRenderer.EntityId,
                 RagdollData = new RagdollData()
                 {
@@ -165,61 +166,61 @@ namespace GoldsrcPhysics
             rigidOrigin.Z += headHeight / 2;
             var headRigid = Matrix.Translation(rigidOrigin).LookAt(in head, in Vector3.UnitY);
             var headBone = accessor.GetWorldTransform(info.Head);
-            ragdoll.BodyParts[(int)BodyPart.Head] = BulletHelper.CreateBoneRigidbody(1, ref headBone, ref headRigid, headShape);
-            ragdoll.BodyParts[(int)BodyPart.Head].UserIndex = info.Head;
+            ragdoll.RigidBodies[(int)BodyPart.Head] = BulletHelper.CreateBoneRigidbody(1, ref headBone, ref headRigid, headShape);
+            ragdoll.RigidBodies[(int)BodyPart.Head].UserIndex = info.Head;
 
             //lArm
             var lArmBone = accessor.GetWorldTransform(info.LeftArm);
             var lElbow = accessor.Pos(info.LeftElbow);
-            ragdoll.BodyParts[(int)BodyPart.LeftArm] = CreateLimb(ref lArmBone, lElbow, headWidth);
-            ragdoll.BodyParts[(int)BodyPart.LeftArm].UserIndex = info.LeftArm;
+            ragdoll.RigidBodies[(int)BodyPart.LeftArm] = CreateLimb(ref lArmBone, lElbow, headWidth*0.55f);
+            ragdoll.RigidBodies[(int)BodyPart.LeftArm].UserIndex = info.LeftArm;
             //rArm
-            var rArmBone = accessor.GetWorldTransform(info.LeftArm);
+            var rArmBone = accessor.GetWorldTransform(info.RightArm);
             var rElbow = accessor.Pos(info.RightElbow);
-            ragdoll.BodyParts[(int)BodyPart.RightArm] = CreateLimb(ref rArmBone, rElbow, headWidth);
-            ragdoll.BodyParts[(int)BodyPart.RightArm].UserIndex = info.RightArm;
+            ragdoll.RigidBodies[(int)BodyPart.RightArm] = CreateLimb(ref rArmBone, rElbow, headWidth*0.55f);
+            ragdoll.RigidBodies[(int)BodyPart.RightArm].UserIndex = info.RightArm;
             //lElbow
             var lElbowBone = accessor.GetWorldTransform(info.LeftElbow);
             var lHand = accessor.Pos(info.LeftHand);
-            ragdoll.BodyParts[(int)BodyPart.LeftElbow] = CreateLimb(ref lElbowBone, lHand, headWidth * 0.6f);
-            ragdoll.BodyParts[(int)BodyPart.LeftElbow].UserIndex = info.LeftElbow;
+            ragdoll.RigidBodies[(int)BodyPart.LeftElbow] = CreateLimb(ref lElbowBone, lHand, headWidth * 0.5f);
+            ragdoll.RigidBodies[(int)BodyPart.LeftElbow].UserIndex = info.LeftElbow;
             //rElbow
             var rElbowBone = accessor.GetWorldTransform(info.RightElbow);
             var rHand = accessor.Pos(info.RightHand);
-            ragdoll.BodyParts[(int)BodyPart.RightElbow] = CreateLimb(ref rElbowBone, rHand, headWidth * 0.6f);
-            ragdoll.BodyParts[(int)BodyPart.RightElbow].UserIndex = info.RightElbow;
+            ragdoll.RigidBodies[(int)BodyPart.RightElbow] = CreateLimb(ref rElbowBone, rHand, headWidth * 0.5f);
+            ragdoll.RigidBodies[(int)BodyPart.RightElbow].UserIndex = info.RightElbow;
             //lHip
             var lHipBone = accessor.GetWorldTransform(info.LeftHip);
             var lKnee = accessor.Pos(info.LeftKnee);
-            ragdoll.BodyParts[(int)BodyPart.LeftHip] = CreateLimb(ref lHipBone, lKnee, headWidth);
-            ragdoll.BodyParts[(int)BodyPart.LeftHip].UserIndex = info.LeftHip;
+            ragdoll.RigidBodies[(int)BodyPart.LeftHip] = CreateLimb(ref lHipBone, lKnee, headWidth*0.55f);
+            ragdoll.RigidBodies[(int)BodyPart.LeftHip].UserIndex = info.LeftHip;
             //rHip
             var rHipBone = accessor.GetWorldTransform(info.RightHip);
             var rKnee = accessor.Pos(info.RightKnee);
-            ragdoll.BodyParts[(int)BodyPart.RightHip] = CreateLimb(ref rHipBone, rKnee, headWidth);
-            ragdoll.BodyParts[(int)BodyPart.RightHip].UserIndex = info.RightHip;
+            ragdoll.RigidBodies[(int)BodyPart.RightHip] = CreateLimb(ref rHipBone, rKnee, headWidth*0.55f);
+            ragdoll.RigidBodies[(int)BodyPart.RightHip].UserIndex = info.RightHip;
             //lKnee
             var lKneeBone = accessor.GetWorldTransform(info.LeftKnee);
             var lFoot = accessor.Pos(info.LeftFoot);
-            ragdoll.BodyParts[(int)BodyPart.LeftKnee] = CreateLimb(ref lKneeBone, lFoot, headWidth * 0.7f);
-            ragdoll.BodyParts[(int)BodyPart.LeftKnee].UserIndex = info.LeftKnee;
+            ragdoll.RigidBodies[(int)BodyPart.LeftKnee] = CreateLimb(ref lKneeBone, lFoot, headWidth * 0.5f);
+            ragdoll.RigidBodies[(int)BodyPart.LeftKnee].UserIndex = info.LeftKnee;
             //rKnee
             var rKneeBone = accessor.GetWorldTransform(info.RightKnee);
             var rFoot = accessor.Pos(info.RightFoot);
-            ragdoll.BodyParts[(int)BodyPart.RightKnee] = CreateLimb(ref rKneeBone, rFoot, headWidth * 0.7f);
-            ragdoll.BodyParts[(int)BodyPart.RightKnee].UserIndex = info.RightKnee;
+            ragdoll.RigidBodies[(int)BodyPart.RightKnee] = CreateLimb(ref rKneeBone, rFoot, headWidth * 0.5f);
+            ragdoll.RigidBodies[(int)BodyPart.RightKnee].UserIndex = info.RightKnee;
             //body
             var pelvis = accessor.Pos(info.Pelvis);
             var pelvisBone = accessor.GetWorldTransform(info.Pelvis);
             var bodyHeight = (head - pelvis).Length;
             var bodyShape = new CapsuleShape(bodyWidth / 2, bodyHeight - bodyWidth);
             var bodyRigidTrans = BulletMathUtils.CenterOf(pelvis, head).LookAt(in head, in Vector3.UnitY);
-            ragdoll.BodyParts[(int)BodyPart.Pelvis] = BulletHelper.CreateBoneRigidbody(3, ref pelvisBone, ref bodyRigidTrans, bodyShape);
-            ragdoll.BodyParts[(int)BodyPart.Pelvis].UserIndex = info.Pelvis;
+            ragdoll.RigidBodies[(int)BodyPart.Pelvis] = BulletHelper.CreateBoneRigidbody(3, ref pelvisBone, ref bodyRigidTrans, bodyShape);
+            ragdoll.RigidBodies[(int)BodyPart.Pelvis].UserIndex = info.Pelvis;
 
             //==============Constraint=============
             Debug.LogLine("Now setup constraint...");
-            var bodys = ragdoll.BodyParts;
+            var bodys = ragdoll.RigidBodies;
             ragdoll.Constraints[0] = CreateJoint(bodys[(int)BodyPart.Head], bodys[(int)BodyPart.Pelvis], head);
             ragdoll.Constraints[1] = CreateJoint(bodys[(int)BodyPart.LeftArm], bodys[(int)BodyPart.Pelvis], lArm);
             ragdoll.Constraints[2] = CreateJoint(bodys[(int)BodyPart.RightArm], bodys[(int)BodyPart.Pelvis], rArm);
@@ -228,35 +229,24 @@ namespace GoldsrcPhysics
             ragdoll.Constraints[5] = CreateJoint(bodys[(int)BodyPart.LeftHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.LeftHip));
             ragdoll.Constraints[6] = CreateJoint(bodys[(int)BodyPart.RightHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.RightHip));
             ragdoll.Constraints[7] = CreateJoint(bodys[(int)BodyPart.LeftKnee], bodys[(int)BodyPart.LeftHip], lKnee);
-            ragdoll.Constraints[8] = CreateJoint(bodys[(int)BodyPart.LeftKnee], bodys[(int)BodyPart.RightHip], rKnee);
+            ragdoll.Constraints[8] = CreateJoint(bodys[(int)BodyPart.RightKnee], bodys[(int)BodyPart.RightHip], rKnee);
 
-            foreach (var i in ragdoll.BodyParts)
+            foreach (var i in ragdoll.RigidBodies)
             {
                 i.SetDamping(0.05f, 0.85f);
                 i.DeactivationTime = 0.8f;
                 i.SetSleepingThresholds(1.6f, 2.5f);
             }
+            // damping, friction and restitution document forum
+            //https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=8100
+            // What is the unit of Damping in Generic Spring Constraint? 
+            // https://github.com/bulletphysics/bullet3/issues/345
+            foreach (var i in ragdoll.Constraints)
+            {
+                (i as Point2PointConstraint).Setting.Damping = 0.98f;
+            }
             Debug.LogLine("Bipped build complete.");
             return ragdoll;
-        }
-        public static TypedConstraint CreateJoint(RigidBody bodyA, RigidBody bodyB, in Vector3 pivot)
-        {
-            var pivotInA = bodyA.TransformToLocal(in pivot);
-            var pivotInB = bodyB.TransformToLocal(in pivot);
-            return new Point2PointConstraint(bodyA, bodyB, pivotInA, pivotInB);
-            //TODO:disable collisions between bodies connected with the constraint. This will done at World.AddConstraint
-        }
-        public static RigidBody CreateLimb(ref Matrix bone, Vector3 child, float radius)
-        {
-            var len = (bone.Origin - child).Length;
-            var shape = new CapsuleShape(radius, len);
-            var rigidTrans = BulletMathUtils.CenterOf(bone.Origin, child).LookAt(child, Vector3.UnitY);
-
-            var mass = 1;// auto calc mass via shape volumn. (may have better algorithm)
-            // Update Tip:because of Simulation becomes unstable when a heavy object is resting on a very light object. 
-            // It is best to keep the mass around 1.This means accurate interaction between a tank and a very light object is not realistic. 
-            // So we just simply set the mass to 1.
-            return BulletHelper.CreateBoneRigidbody(mass, ref bone, ref rigidTrans, shape);
         }
     }
     public class BippedBone
@@ -268,6 +258,7 @@ namespace GoldsrcPhysics
         }
         static BippedBone()
         {
+            KeyValues = new Dictionary<string, BippedBone>();
             DataContractJsonSerializer serializer = new DataContractJsonSerializer(KeyValues.GetType());
             using (var stream = File.OpenRead("RagdollBone.json"))
             {

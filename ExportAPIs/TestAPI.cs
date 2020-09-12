@@ -1,4 +1,5 @@
-﻿using GoldsrcPhysics.Goldsrc;
+﻿using BulletSharp.Math;
+using GoldsrcPhysics.Goldsrc;
 using System;
 
 namespace GoldsrcPhysics.ExportAPIs
@@ -52,7 +53,11 @@ namespace GoldsrcPhysics.ExportAPIs
             {
                 //remove
             }
-
+            StudioRenderer.DrawCurrentSkeleton();
+            var origin=StudioRenderer.NativePointer->m_pCurrentEntity->curstate.origin;
+            var from = Vector3.Zero;
+            var color = new Vector3(0.9f, 0.9f, 0);
+            StudioRenderer.Drawer.DrawLine(ref from,ref origin,ref color);
             if(LastSeq!=Pistol&&CurSeq==Pistol)
             {
                 //enable ragdoll

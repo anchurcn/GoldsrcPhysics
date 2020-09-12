@@ -23,14 +23,17 @@ namespace GoldsrcPhysics
     [StructLayout(LayoutKind.Sequential)]
     public struct PhysicsAPI
     {
-        [MarshalAs( UnmanagedType.FunctionPtr)]
-        public InitDelegate InitSystem;
+        //[MarshalAs( UnmanagedType.FunctionPtr)]
+        //public InitDelegate InitSystem;
 
-        [MarshalAs(UnmanagedType.FunctionPtr)]
-        public UpdateDelegate Update;
+        //[MarshalAs(UnmanagedType.FunctionPtr)]
+        //public UpdateDelegate Update;
 
-        [MarshalAs(UnmanagedType.FunctionPtr)]
-        public DoWork Test;
+        //[MarshalAs(UnmanagedType.FunctionPtr)]
+        //public DoWork Test;
+        public IntPtr a;
+        public IntPtr b;
+        public IntPtr c;
     }
     /// <summary>
     /// Provide the interface to goldsrc that can access to
@@ -44,7 +47,12 @@ namespace GoldsrcPhysics
 
         #region RegisterPhysicsAPI
         //purpose of this region: called by native code and write the API function pointer for native 
-
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        private static InitDelegate Init;
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        private static UpdateDelegate Up;
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        private static DoWork Do;
         // Holds the api instance avoid being garbage collected
         private static PhysicsAPI API;
 
@@ -52,7 +60,7 @@ namespace GoldsrcPhysics
         /// Register APIs
         /// </summary>
         /// <param name="physicsAPI">[in]</param>
-        [DllImport("client.dll")]
+        [DllImport("client.dll",CallingConvention = CallingConvention.Cdecl)]
         private static extern void RegisterAPI(ref PhysicsAPI physicsAPI);
 
         public static int InitPhysicsInterface(string msg)
@@ -60,11 +68,17 @@ namespace GoldsrcPhysics
             Debug.LogLine("Welcome to goldsrc physics. host msg:\"{0}\"", msg);
             var moddir=PhyConfiguration.GetValue("ModDir");
             Environment.SetEnvironmentVariable("Path", Path.Combine(moddir, "cl_dlls"));
+            Init = new InitDelegate(InitSystem);
+            Up = new UpdateDelegate(Update);
+            Do = new DoWork(TestAPI.Test);
             API = new PhysicsAPI()
             {
-                InitSystem = InitSystem,
-                Update = Update,
-                Test = TestAPI.Test
+                //InitSystem = InitSystem,
+                //Update = Update,
+                //Test = TestAPI.Test
+                a = Marshal.GetFunctionPointerForDelegate(Init),
+                b = Marshal.GetFunctionPointerForDelegate(Up),
+                c = Marshal.GetFunctionPointerForDelegate(Do),
             };
             RegisterAPI(ref API);
             return 0;
@@ -78,13 +92,15 @@ namespace GoldsrcPhysics
         /// <param name="physicsAPI">[out]</param>
         public static void GetPhysicsInterface(ref PhysicsAPI physicsAPI)
         {
-            physicsAPI.InitSystem = InitSystem;
-            physicsAPI.Update = Update;
-            physicsAPI.Test = TestAPI.Test;
+            //physicsAPI.InitSystem = InitSystem;
+            //physicsAPI.Update = Update;
+            //physicsAPI.Test = TestAPI.Test;
         }
+        [DllImport("client")]
+        public extern static int ValidateStudio(IntPtr p);
         #endregion
 
-        public static void InitSystem(IntPtr pStudioRenderer)
+        public static unsafe void InitSystem(IntPtr pStudioRenderer)
         {
             //register goldsrc global variables
             //拿到金源引擎的API，使物理引擎可以访问缓存的模型信息、地图信息等
@@ -93,6 +109,10 @@ namespace GoldsrcPhysics
             StudioRenderer.Drawer = BWorld.Instance.DebugDrawer;
             RagdollManager = new RagdollManager();
             LocalBodyPicker = new LocalPlayerBodyPicker();
+
+            //Validation
+            if (ValidateStudio((IntPtr)StudioRenderer.NativePointer->m_plighttransform)==0)
+                throw new ArgumentException("studio is not valid");
         }
         /// <summary>
         /// Load map
@@ -101,9 +121,10 @@ namespace GoldsrcPhysics
         {
             for (int i = 0; i < SceneStaticObjects.Count; i++)
             {
-                SceneStaticObjects[i].Dispose();
                 BWorld.Instance.RemoveRigidBody(SceneStaticObjects[i]);
+                SceneStaticObjects[i].Dispose();
             }
+            SceneStaticObjects.Clear();
             LoadScene(mapName);
         }
         /// <summary>
@@ -126,8 +147,10 @@ namespace GoldsrcPhysics
             LocalBodyPicker.Update();
 
             //physics simulating
-            Time.SubStepCount+=BWorld.Instance.StepSimulation(Time.DeltaTime);
-
+            if(delta<0)
+                Time.SubStepCount+=BWorld.Instance.StepSimulation(Time.DeltaTime);
+            else
+                Time.SubStepCount += BWorld.Instance.StepSimulation(delta);
 
             //drawing
             {//not covered draw
@@ -170,7 +193,7 @@ namespace GoldsrcPhysics
         private static void LoadScene(string levelName)
         {
             var path = PhyConfiguration.GetValue("MapDir");
-            var filePath = path + levelName + ".bsp";
+            var filePath = Path.Combine( path , levelName + ".bsp");
             Debug.LogLine("Load map {0}", filePath);
 
             LoadBsp(filePath);

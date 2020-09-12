@@ -2,21 +2,21 @@
   {
     "Key": "gordon",
     "Value": {
-      "Head": 0,
-      "Spine": 0,
-      "Pelvis": 0,
-      "LeftArm": 0,
-      "LeftElbow": 0,
-      "LeftHand": 0,
-      "LeftHip": 0,
-      "LeftKnee": 0,
-      "LeftFoot": 0,
-      "RightArm": 0,
-      "RightElbow": 0,
-      "RightHand": 0,
-      "RightHip": 0,
-      "RightKnee": 0,
-      "RightFoot": 0
+      "Head": 13,
+      "Spine": 9,
+      "Pelvis": 1,
+      "LeftArm": 15,
+      "LeftElbow": 16,
+      "LeftHand": 17,
+      "LeftHip": 2,
+      "LeftKnee": 3,
+      "LeftFoot": 4,
+      "RightArm": 22,
+      "RightElbow": 23,
+      "RightHand": 24,
+      "RightHip": 5,
+      "RightKnee": 6,
+      "RightFoot": 7
     }
   },
   {

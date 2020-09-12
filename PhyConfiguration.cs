@@ -26,16 +26,19 @@ namespace GoldsrcPhysics
         static PhyConfiguration()
         {
             Configuration = new Dictionary<string, string>();
-            TextReader reader = new StreamReader(File.OpenRead("physics.cfg"),Encoding.Default);
+            TextReader reader = new StreamReader(File.OpenRead(@"F:\anchur\goldsrcPhy\GoldsrcPhysics\docs\physics.cfg"),Encoding.Default);
             string line = reader.ReadLine();
             Debug.LogLine("reading physics.cfg...");
             while (line!=null)
             {
                 line.Trim();
                 if (line[0] == '#')
+                {
+                    line = reader.ReadLine();
                     continue;
+                }
 
-                var pair = line.Split(':');
+                var pair = line.Split('$');
                 Configuration.Add(pair[0], pair[1]);
                 Debug.LogLine("{0}\t:{1}", pair[0], pair[1]);
                 line = reader.ReadLine();
