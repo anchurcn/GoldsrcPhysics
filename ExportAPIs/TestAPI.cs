@@ -33,7 +33,9 @@ namespace GoldsrcPhysics.ExportAPIs
             {
                 //precache ragdoll data
                 //PhysicsFileProvider.PreCache(modelName);
-                PhysicsMain.ChangeLevel("crossfire");
+                string map = "crossfire";
+                sbyte* mapName = (sbyte*)Marshal.StringToHGlobalAnsi(map);
+                PhysicsMain.ChangeLevel(mapName);
                 Initialized = true;
                 return;
             }

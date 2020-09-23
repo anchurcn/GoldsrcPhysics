@@ -71,6 +71,18 @@ namespace GoldsrcPhysics
             if(Ragdolls[entityId]!=null)
                 Register.Add(entityId);
         }
+        public void CreateRagdollController(int entityId,int index)
+        {
+            Ragdolls[entityId] = RagdollBuilder.Build(index);
+            if (Ragdolls[entityId] != null)
+                Register.Add(entityId);
+        }
+        public unsafe void CreateRagdollController(int entityId,Studio_h.studiohdr_t* hdr)
+        {
+            Ragdolls[entityId] = RagdollBuilder.Build(hdr);
+            if (Ragdolls[entityId] != null)
+                Register.Add(entityId);
+        }
         /// <summary>
         /// change owner when the corpse changed from player entity to just a model entity
         /// </summary>
@@ -107,7 +119,7 @@ namespace GoldsrcPhysics
             }
             Register.Clear();
         }
-        public void DisposeRagdoll(int entityId)
+        public void DisposeRagdollController(int entityId)
         {
             var ragdoll = Ragdolls[entityId];
             if (ragdoll == null)

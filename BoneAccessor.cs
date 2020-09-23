@@ -4,6 +4,7 @@ using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,12 +16,20 @@ namespace GoldsrcPhysics
     {
         public static BoneAccessor GetCurrent()
         {
-            return new TPoseBoneAccessor();
+            return new TPoseBoneAccessor(StudioRenderer.StudioHeader);
         }
 
         public static BoneAccessor Get(string name)
         {
-            throw new NotImplementedException();
+            sbyte* n = (sbyte*)Marshal.StringToHGlobalAnsi(name);
+            var mod = IEngineStudio.Mod_ForName(n,true);
+            Marshal.FreeHGlobal((IntPtr)n);
+            return new TPoseBoneAccessor(IEngineStudio.Mod_Extradata(mod));
+        }
+        public static BoneAccessor Get(int index)
+        {
+            var mod = IEngineStudio.GetModelByIndex(index);
+            return new TPoseBoneAccessor(IEngineStudio.Mod_Extradata(mod));
         }
         
         public void SetTPose() { }
@@ -55,9 +64,8 @@ namespace GoldsrcPhysics
     public unsafe class TPoseBoneAccessor:BoneAccessor
     {
         private Matrix34f[] BoneTransform;
-        public TPoseBoneAccessor()
+        public TPoseBoneAccessor(studiohdr_t* studioHeader)
         {
-            var studioHeader = StudioRenderer.NativePointer->m_pStudioHeader;
             var bones = (mstudiobone_t*)((byte*)studioHeader + studioHeader->boneindex);
             BoneTransform = new Matrix34f[StudioRenderer.BoneCount];
 

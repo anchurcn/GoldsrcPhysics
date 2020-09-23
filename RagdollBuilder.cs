@@ -5,6 +5,7 @@ using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Json;
 using static GoldsrcPhysics.Utils.BulletHelper;
 /*
@@ -75,6 +76,17 @@ namespace GoldsrcPhysics
             }
             return result;
         }
+        public unsafe static Ragdoll Build(int modelIndex)
+        {
+            var mod=IEngineStudio.GetModelByIndex(modelIndex);
+            string name = Marshal.PtrToStringAnsi((IntPtr)mod->name);
+            return BuildBipped(BippedBone.Get(name), BoneAccessor.Get(name));
+        }
+        public unsafe static Ragdoll Build(Studio_h.studiohdr_t* hdr)
+        {
+            string name = Marshal.PtrToStringAnsi((IntPtr)hdr->name);
+            return BuildBipped(BippedBone.Get(name), BoneAccessor.Get(name));
+        }
         public static Ragdoll Build(string modelName, BuildOption buildOption)
         {
             switch (buildOption)
@@ -89,7 +101,7 @@ namespace GoldsrcPhysics
                     {
                         var info = BippedBone.Get(modelName);
                         if (info != null)
-                            return BuildBipped(info);
+                            return BuildBipped(info,BoneAccessor.GetCurrent());
                         Debug.LogLine("BippedBone missing. Model:{0}", modelName);
                     }
                     break;
@@ -115,10 +127,9 @@ namespace GoldsrcPhysics
         //		   /			   /
         //		 3 ------------- 0
         //           width/length
-        private static Ragdoll BuildBipped(BippedBone info)
+        private static Ragdoll BuildBipped(BippedBone info,BoneAccessor accessor)
         {
             Debug.LogLine("Bipped build begin...");
-            BoneAccessor accessor = BoneAccessor.GetCurrent();
             var listKeybone = new List<int>()
             {
             info.Head,

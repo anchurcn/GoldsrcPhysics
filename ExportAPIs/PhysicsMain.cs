@@ -2,7 +2,6 @@
 using BulletSharp;
 using BulletSharp.Math;
 using DemoFramework;
-using GoldsrcPhysics.ExportAPIs;
 using GoldsrcPhysics.Goldsrc;
 using GoldsrcPhysics.Utils;
 using System;
@@ -14,30 +13,6 @@ using System.Runtime.InteropServices;
 
 namespace GoldsrcPhysics.ExportAPIs
 {
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void InitDelegate(IntPtr p,IntPtr addr);
-    
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DoWork();
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void UpdateDelegate(float delta);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct PhysicsAPI
-    {
-        //[MarshalAs( UnmanagedType.FunctionPtr)]
-        //public InitDelegate InitSystem;
-
-        //[MarshalAs(UnmanagedType.FunctionPtr)]
-        //public UpdateDelegate Update;
-
-        //[MarshalAs(UnmanagedType.FunctionPtr)]
-        //public DoWork Test;
-        public IntPtr a;
-        public IntPtr b;
-        public IntPtr c;
-    }
     public static class DelegateCreator
     {
         public static readonly Func<Type[], Type> MakeNewCustomDelegate =
@@ -72,80 +47,23 @@ namespace GoldsrcPhysics.ExportAPIs
 
         #endregion
 
-        #region RegisterPhysicsAPI
-        //purpose of this region: called by native code and write the API function pointer for native 
-
-        [MarshalAs(UnmanagedType.FunctionPtr)]
-        private static InitDelegate Init;
-        [MarshalAs(UnmanagedType.FunctionPtr)]
-        private static UpdateDelegate Up;
-        [MarshalAs(UnmanagedType.FunctionPtr)]
-        private static DoWork Do;
-
-        // Holds the api instance avoid being garbage collected
-        private static PhysicsAPI API;
-
-        /// <summary>
-        /// Register APIs
-        /// </summary>
-        /// <param name="physicsAPI">[in]</param>
-        [DllImport("client.dll",CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RegisterAPI(in PhysicsAPI physicsAPI);
-
-        public static int InitPhysicsInterface(string msg)
-        {
-            Debug.LogLine("Welcome to goldsrc physics. host msg:\"{0}\"", msg);
-            var moddir=PhyConfiguration.GetValue("ModDir");
-            Environment.SetEnvironmentVariable("Path", Path.Combine(moddir, "cl_dlls"));
-            Init = new InitDelegate(InitSystem);
-            Up = new UpdateDelegate(Update);
-            Do = new DoWork(TestAPI.Test);
-            API = new PhysicsAPI()
-            {
-                //InitSystem = InitSystem,
-                //Update = Update,
-                //Test = TestAPI.Test
-                a = (IntPtr)GetMethodPointer("InitSystem"),
-                b = Marshal.GetFunctionPointerForDelegate(Up),
-                c = Marshal.GetFunctionPointerForDelegate(Do),
-            };
-            RegisterAPI(in API);
-            return 0;
-        }
-
-        /// <summary>
-        /// Fill the struct with API function pointer.
-        /// But in older version of CLR host, it can't call this function directly. 
-        /// You should use InitPhysicsInterface instead, and implement RegisterAPI in your native host to save physicsAPI for future use.
-        /// </summary>
-        /// <param name="physicsAPI">[out]</param>
-        public static void GetPhysicsInterface(ref PhysicsAPI physicsAPI)
-        {
-            //physicsAPI.InitSystem = InitSystem;
-            //physicsAPI.Update = Update;
-            //physicsAPI.Test = TestAPI.Test;
-        }
-
-        #endregion
-
         #region Get API pointer
 
-        public static int GetInterface(string pFuncPtr)
+        // Hold these instances to avoid being collected by the GC
+        private static List<object> KeepReference = new List<object>();
+        private static void* GetMethodPointer(string name)
         {
-            void** p = (void**)Convert.ToUInt64(pFuncPtr);
-            p[0] = GetMethodPointer("GetMethodPointer");
-            return (int)p[0];
-        }
+            MethodInfo methodInfo = typeof(PhysicsMain).GetMethod(name);
 
-        //avoid gc collect this object
-        static List<object> KeepReference = new List<object>();
-        public unsafe static void* GetMethodPointer(string name)
-        {
-            System.Reflection.MethodInfo methodInfo = typeof(PhysicsMain).GetMethod(name);
-
-            // also mark this delegate with [UnmanagedFunctionPointer(CallingConvention.StdCall)] attribute
-            // default marshal calling convension is stdcall
-            Type delegateType = ConstructDelegateTypeWithMethodInfo(methodInfo);
+            var paramsInfo = methodInfo.GetParameters();
+            var argTypes = new Type[paramsInfo.Length];
+            for (int i = 0; i < argTypes.Length; i++)
+            {
+                argTypes[i] = paramsInfo[i].ParameterType;
+            }
+            // also mark this delegate type with [UnmanagedFunctionPointer(CallingConvention.StdCall)] attribute
+            // default marshal calling convension is stdcall so we don't need to mark explicit
+            Type delegateType = DelegateCreator.NewDelegateType(methodInfo.ReturnType,argTypes);
 
             var delegateInstance = Delegate.CreateDelegate(delegateType, methodInfo);
 
@@ -162,41 +80,46 @@ namespace GoldsrcPhysics.ExportAPIs
             p[0] = GetMethodPointer(args[1]);
             return (int)p[0];
         }
-        public static Type ConstructDelegateTypeWithMethodInfo(MethodInfo info)
-        {
-            List<Type> argTypes = new List<Type>();
-            foreach (var i in info.GetParameters())
-                argTypes.Add(i.ParameterType);
-            argTypes.Add(info.ReturnType);
-            return DelegateCreator.MakeNewCustomDelegate(argTypes.ToArray());
-        }
         #endregion
+
         #region Test
+
+#if DEBUG
         public static void Test()
         {
             TestAPI.Test();
         }
+#endif
+
         #endregion
+
         #region PhysicsSystem
 
-        public static unsafe void InitSystem(IntPtr pStudioRenderer,IntPtr lastFieldAddress)
+        /// <summary>
+        /// Init physics system
+        /// if the struct layout is different from default layout, that will throw a fatal error.
+        /// </summary>
+        /// <param name="pStudioRenderer">the address of StudioModelRenderer's first field. (m_clTime)</param>
+        /// <param name="lastFieldAddress">the address of StudioModelRenderer's last field. (m_plighttransform)</param>
+        public static unsafe void InitSystem(void* pStudioRenderer,void* lastFieldAddress)
         {
             //register goldsrc global variables
             //拿到金源引擎的API，使物理引擎可以访问缓存的模型信息、地图信息等
             BWorld.CreateInstance();
-            StudioRenderer.Init(pStudioRenderer);
+            StudioRenderer.Init((IntPtr)pStudioRenderer);
             StudioRenderer.Drawer = BWorld.Instance.DebugDrawer;
             RagdollManager = new RagdollManager();
             LocalBodyPicker = new LocalPlayerBodyPicker();
 
             //Validation
-            if ((IntPtr)(&StudioRenderer.NativePointer->m_plighttransform)!=lastFieldAddress)
+            if ((void*)(&StudioRenderer.NativePointer->m_plighttransform)!=lastFieldAddress)
                 throw new Exception("studio model renderer is invalid.");
         }
         /// <summary>
-        /// Load map
+        ///  Load map geomitry collider. 
         /// </summary>
-        public static void ChangeLevel(string mapName)
+        /// <param name="mapName"></param>
+        public static void ChangeLevel(sbyte* mapName)
         {
             for (int i = 0; i < SceneStaticObjects.Count; i++)
             {
@@ -204,7 +127,7 @@ namespace GoldsrcPhysics.ExportAPIs
                 SceneStaticObjects[i].Dispose();
             }
             SceneStaticObjects.Clear();
-            LoadScene(mapName);
+            LoadScene(Marshal.PtrToStringAnsi((IntPtr)mapName));
         }
         /// <summary>
         /// 地图不变，内容重置，清理在游戏中动态创建的各种CollisionObjects
@@ -239,7 +162,7 @@ namespace GoldsrcPhysics.ExportAPIs
                 //just put lines in buffer, then you should draw it on ViewDrawing
             }
             {//normal draw
-                (BWorld.Instance.DebugDrawer as PhysicsDebugDraw).DrawDebugWorld(BWorld.Instance);
+                //(BWorld.Instance.DebugDrawer as PhysicsDebugDraw).DrawDebugWorld(BWorld.Instance);
             }
         }
 
@@ -263,9 +186,18 @@ namespace GoldsrcPhysics.ExportAPIs
         #endregion
 
         #region RagdollAPI
-        public static void CreateRagdollController(int entityId, string modelName)
+        public static void CreateRagdollController(int entityId, sbyte* modelName)
         {
-            RagdollManager.CreateRagdollController(entityId, modelName);
+            string name = Marshal.PtrToStringAnsi((IntPtr)modelName);
+            RagdollManager.CreateRagdollController(entityId, name);
+        }
+        public static void CreateRagdollControllerIndex(int entityId, int index)
+        {
+            RagdollManager.CreateRagdollController(entityId, index);
+        }
+        public static unsafe void CreateRagdollControllerHeader(int entityId, Studio_h.studiohdr_t* hdr)
+        {
+            RagdollManager.CreateRagdollController(entityId, hdr);
         }
         public static void StartRagdoll(int entityId)
         {
