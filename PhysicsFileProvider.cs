@@ -1,4 +1,5 @@
 ﻿using BulletSharp;
+using BulletSharp.Math;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,30 +8,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GoldsrcPhysics.ExportAPIs
+namespace GoldsrcPhysics
 {
-    public static class RagdollAPI
-    {
-        private static RagdollManager Manager { get => PhysicsMain.RagdollManager; }
-
-        public static void CreateRagdollController(int entityId, string modelName)
-        {
-            Manager.CreateRagdollController(entityId, modelName);
-        }
-        public static void StartRagdoll(int entityId)
-        {
-            Manager.StartRagdoll(entityId);
-        }
-        public static void StopRagdoll(int entityId)
-        {
-            Manager.StopRagdoll(entityId);
-        }
-        public static void SetupBonesPhysically(int entityId)
-        {
-            Manager.SetupBonesPhysically(entityId);
-        }
-
-    }
     public static class PhysicsFileProvider
     {
         //class CheckExist
@@ -115,12 +94,5 @@ namespace GoldsrcPhysics.ExportAPIs
             return null;
         }
 
-    }
-    public class PhysicsManager
-    {
-        public static void UpdateEntityMotion(int entityId)
-        {
-             
-        }
     }
 }

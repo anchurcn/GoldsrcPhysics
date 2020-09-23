@@ -10,7 +10,7 @@ namespace GoldsrcPhysics.Utils
 {
     public static class BulletHelper
     {
-        public static RigidBody CreateBoneRigidbody(float mass,ref Matrix boneTrans,ref Matrix rigidTrans, CollisionShape shape)
+        public static RigidBody CreateBoneRigidbody(float mass, ref Matrix boneTrans, ref Matrix rigidTrans, CollisionShape shape)
         {
             // A dynamic body with zero mass is invalid
             if (mass == 0)
@@ -20,7 +20,7 @@ namespace GoldsrcPhysics.Utils
 
             // Using a motion state is recommended,
             // it holds the offset between bone and rigidbody
-            var myMotionState = new BoneMotionState(boneTrans,rigidTrans);
+            var myMotionState = new BoneMotionState(boneTrans, rigidTrans);
 
             Vector3 localInertia = shape.CalculateLocalInertia(mass);
 
@@ -35,6 +35,7 @@ namespace GoldsrcPhysics.Utils
         {
             var pivotInA = bodyA.TransformToLocal(in pivot);
             var pivotInB = bodyB.TransformToLocal(in pivot);
+            //should use ConeTwistConstraint here, local frame means local coordinates/局部坐标系
             return new Point2PointConstraint(bodyA, bodyB, pivotInA, pivotInB);
             // disable collisions between bodies connected with the constraint. This will done at World.AddConstraint
         }
@@ -49,6 +50,15 @@ namespace GoldsrcPhysics.Utils
             // It is best to keep the mass around 1.This means accurate interaction between a tank and a very light object is not realistic. 
             // So we just simply set the mass to 1.
             return CreateBoneRigidbody(mass, ref bone, ref rigidTrans, shape);
+        }
+        static Random Rand;
+        static BulletHelper()
+        {
+            Rand = new Random();
+        }
+        public static int RandomInt(int min,int max)
+        {
+            return Rand.Next(min, max);
         }
     }
 }

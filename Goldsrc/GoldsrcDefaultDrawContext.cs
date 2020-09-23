@@ -31,6 +31,9 @@ namespace GoldsrcPhysics.Goldsrc
         //maybe game loop use this function
         private static void Exsample()
         {
+            // if you want to draw something that can't be covered, just use [glDepthMask(GL_FALSE);] disable depth detection
+            //
+
             //glBegin(Lines)
             //glColor()//use color for next vertex
             //glVertex()

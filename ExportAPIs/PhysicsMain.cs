@@ -4,15 +4,18 @@ using BulletSharp.Math;
 using DemoFramework;
 using GoldsrcPhysics.ExportAPIs;
 using GoldsrcPhysics.Goldsrc;
+using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace GoldsrcPhysics
+namespace GoldsrcPhysics.ExportAPIs
 {
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void InitDelegate(IntPtr p);
+    public delegate void InitDelegate(IntPtr p,IntPtr addr);
     
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate void DoWork();
@@ -35,24 +38,50 @@ namespace GoldsrcPhysics
         public IntPtr b;
         public IntPtr c;
     }
+    public static class DelegateCreator
+    {
+        public static readonly Func<Type[], Type> MakeNewCustomDelegate =
+            (Func<Type[], Type>)Delegate.CreateDelegate
+            (
+                typeof(Func<Type[], Type>),
+                typeof(Expression).Assembly.GetType("System.Linq.Expressions.Compiler.DelegateHelpers")
+                .GetMethod("MakeNewCustomDelegate", BindingFlags.NonPublic | BindingFlags.Static)
+            );
+        public static Type NewDelegateType(Type ret, params Type[] parameters)
+        {
+            Type[] args = new Type[parameters.Length + 1];
+            parameters.CopyTo(args, 0);
+            args[args.Length - 1] = ret;
+            return MakeNewCustomDelegate(args);
+        }
+    }
     /// <summary>
     /// Provide the interface to goldsrc that can access to
     /// </summary>
-    public class PhysicsMain
+    public unsafe class PhysicsMain
     {
-        internal static RagdollManager RagdollManager { get; set; }
+        #region static properties
+
+        private static RagdollManager RagdollManager { get; set; }
+
         private static LocalPlayerBodyPicker LocalBodyPicker { get; set; }
 
         private static List<RigidBody> SceneStaticObjects { get; } = new List<RigidBody>();
 
+        private static bool IsPaused;
+
+        #endregion
+
         #region RegisterPhysicsAPI
         //purpose of this region: called by native code and write the API function pointer for native 
+
         [MarshalAs(UnmanagedType.FunctionPtr)]
         private static InitDelegate Init;
         [MarshalAs(UnmanagedType.FunctionPtr)]
         private static UpdateDelegate Up;
         [MarshalAs(UnmanagedType.FunctionPtr)]
         private static DoWork Do;
+
         // Holds the api instance avoid being garbage collected
         private static PhysicsAPI API;
 
@@ -61,7 +90,7 @@ namespace GoldsrcPhysics
         /// </summary>
         /// <param name="physicsAPI">[in]</param>
         [DllImport("client.dll",CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RegisterAPI(ref PhysicsAPI physicsAPI);
+        private static extern void RegisterAPI(in PhysicsAPI physicsAPI);
 
         public static int InitPhysicsInterface(string msg)
         {
@@ -76,11 +105,11 @@ namespace GoldsrcPhysics
                 //InitSystem = InitSystem,
                 //Update = Update,
                 //Test = TestAPI.Test
-                a = Marshal.GetFunctionPointerForDelegate(Init),
+                a = (IntPtr)GetMethodPointer("InitSystem"),
                 b = Marshal.GetFunctionPointerForDelegate(Up),
                 c = Marshal.GetFunctionPointerForDelegate(Do),
             };
-            RegisterAPI(ref API);
+            RegisterAPI(in API);
             return 0;
         }
 
@@ -96,11 +125,61 @@ namespace GoldsrcPhysics
             //physicsAPI.Update = Update;
             //physicsAPI.Test = TestAPI.Test;
         }
-        [DllImport("client")]
-        public extern static int ValidateStudio(IntPtr p);
+
         #endregion
 
-        public static unsafe void InitSystem(IntPtr pStudioRenderer)
+        #region Get API pointer
+
+        public static int GetInterface(string pFuncPtr)
+        {
+            void** p = (void**)Convert.ToUInt64(pFuncPtr);
+            p[0] = GetMethodPointer("GetMethodPointer");
+            return (int)p[0];
+        }
+
+        //avoid gc collect this object
+        static List<object> KeepReference = new List<object>();
+        public unsafe static void* GetMethodPointer(string name)
+        {
+            System.Reflection.MethodInfo methodInfo = typeof(PhysicsMain).GetMethod(name);
+
+            // also mark this delegate with [UnmanagedFunctionPointer(CallingConvention.StdCall)] attribute
+            // default marshal calling convension is stdcall
+            Type delegateType = ConstructDelegateTypeWithMethodInfo(methodInfo);
+
+            var delegateInstance = Delegate.CreateDelegate(delegateType, methodInfo);
+
+            KeepReference.Add(delegateType);
+            KeepReference.Add(delegateInstance);
+            return (void*)Marshal.GetFunctionPointerForDelegate(delegateInstance);
+        }
+        public static int GetFunctionPointer(string pointerAndName)
+        {
+            var args = pointerAndName.Trim().Split('|');
+            if (args.Length > 2)
+                throw new ArgumentException(nameof(pointerAndName) + ":" + pointerAndName);
+            void** p = (void**)Convert.ToUInt64(args[0],16);
+            p[0] = GetMethodPointer(args[1]);
+            return (int)p[0];
+        }
+        public static Type ConstructDelegateTypeWithMethodInfo(MethodInfo info)
+        {
+            List<Type> argTypes = new List<Type>();
+            foreach (var i in info.GetParameters())
+                argTypes.Add(i.ParameterType);
+            argTypes.Add(info.ReturnType);
+            return DelegateCreator.MakeNewCustomDelegate(argTypes.ToArray());
+        }
+        #endregion
+        #region Test
+        public static void Test()
+        {
+            TestAPI.Test();
+        }
+        #endregion
+        #region PhysicsSystem
+
+        public static unsafe void InitSystem(IntPtr pStudioRenderer,IntPtr lastFieldAddress)
         {
             //register goldsrc global variables
             //拿到金源引擎的API，使物理引擎可以访问缓存的模型信息、地图信息等
@@ -111,8 +190,8 @@ namespace GoldsrcPhysics
             LocalBodyPicker = new LocalPlayerBodyPicker();
 
             //Validation
-            if (ValidateStudio((IntPtr)StudioRenderer.NativePointer->m_plighttransform)==0)
-                throw new ArgumentException("studio is not valid");
+            if ((IntPtr)(&StudioRenderer.NativePointer->m_plighttransform)!=lastFieldAddress)
+                throw new Exception("studio model renderer is invalid.");
         }
         /// <summary>
         /// Load map
@@ -142,13 +221,15 @@ namespace GoldsrcPhysics
         /// <param name="delta"></param>
         public static void Update(float delta)
         {
+            if (IsPaused)
+                return;
             //handling input
             //player's collider pos, bodypicker's pos
             LocalBodyPicker.Update();
 
             //physics simulating
-            if(delta<0)
-                Time.SubStepCount+=BWorld.Instance.StepSimulation(Time.DeltaTime);
+            if (delta < 0)
+                Time.SubStepCount += BWorld.Instance.StepSimulation(Time.DeltaTime);
             else
                 Time.SubStepCount += BWorld.Instance.StepSimulation(delta);
 
@@ -164,18 +245,52 @@ namespace GoldsrcPhysics
 
         public static void Pause()
         {
-
+            IsPaused = true;
         }
 
         public static void Resume()
         {
-
+            IsPaused = false;
         }
 
+        /// <summary>
+        /// Close physics system and release physics resources.
+        /// </summary>
         public static void ShotDown()
         {
 
         }
+        #endregion
+
+        #region RagdollAPI
+        public static void CreateRagdollController(int entityId, string modelName)
+        {
+            RagdollManager.CreateRagdollController(entityId, modelName);
+        }
+        public static void StartRagdoll(int entityId)
+        {
+            RagdollManager.StartRagdoll(entityId);
+        }
+        public static void StopRagdoll(int entityId)
+        {
+            RagdollManager.StopRagdoll(entityId);
+        }
+        public static void SetupBonesPhysically(int entityId)
+        {
+            RagdollManager.SetupBonesPhysically(entityId);
+        }
+
+        public static void ChangeOwner(int oldEntity, int newEntity)
+        {
+            RagdollManager.ChangeOwner(oldEntity, newEntity);
+        }
+
+        public static void SetVelocity(int entityId, Vector3 v)
+        {
+            RagdollManager.SetVelocity(entityId, v);
+        }
+        #endregion
+
         #region BodyPicker
         public static void PickBody()
         {
@@ -203,6 +318,17 @@ namespace GoldsrcPhysics
             "func_buyzone",
             "func_bomb_target"
         };
+        /// <summary>
+        /// 每个地图都由固体和固体实体和点实体构成
+        /// 地图的Model[0]就是地图的静态地形
+        /// WorldSpawn实体是每个地图都有的实体
+        /// 地图有许多个Model，每个Model里面有许多的子模型，因为每个子模型应用不同的材质。
+        /// 出于性能目的，如果只是贴图不同而其他渲染操作相同，可以合并贴图、UV、子模型，这样可以合并为一个draw call
+        /// 对于物理引擎，合并模型也能提高性能，而在物理世界只考虑几何模型，所以我们可以合并所有静态的子模型。
+        /// 预览版：排除不可见固体实体的模型、排除贴上不参与碰撞贴图的模型（如天空）
+        /// 正式版：只加载静态地形，包括func_wall实体的模型，排除贴上不参与碰撞贴图的模型（如天空），其他实体的模型应参与游戏逻辑（如门应该是Kinematic刚体，一般的物件应该是动态刚体）
+        /// </summary>
+        /// <param name="path"></param>
         private static void LoadBsp(string path)
         {
             List<int> invisableModelIndex = new List<int>();
@@ -360,13 +486,4 @@ namespace GoldsrcPhysics
         //#endregion
 
     }
-    public class GBConstant
-    {
-        public const float G2BScale = 0.01905f;
-        public const float B2GScale = 1/0.01905f;
-        public const int ValuesX = 0;
-        public const int ValuesY = 2;
-        public const int ValuesZ = 1;
-    }
-    
 }

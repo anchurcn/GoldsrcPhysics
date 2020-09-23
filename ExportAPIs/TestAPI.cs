@@ -1,6 +1,8 @@
 ﻿using BulletSharp.Math;
 using GoldsrcPhysics.Goldsrc;
 using System;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace GoldsrcPhysics.ExportAPIs
 {
@@ -13,7 +15,7 @@ namespace GoldsrcPhysics.ExportAPIs
         //25 拿着撬棍
         static int Attack = 26;//撬棍攻击
         static int Pistol = 33;//拿着手枪
-
+        static Vector3 LastOrigin;
         /// <summary>
         /// calls on player render
         /// 应该在entity是玩家时调用
@@ -23,10 +25,11 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <returns></returns>
         public static void Test()
         {
+            var curent = StudioRenderer.NativePointer->m_pCurrentEntity;
             //if(!isPlayer)
             //return 0;
 
-            if(!Initialized)
+            if (!Initialized)
             {
                 //precache ragdoll data
                 //PhysicsFileProvider.PreCache(modelName);
@@ -37,7 +40,7 @@ namespace GoldsrcPhysics.ExportAPIs
             if(AddPlayer)
             {
                 //new ragdoll
-                RagdollAPI.CreateRagdollController(StudioRenderer.EntityId, "gordon");
+                PhysicsMain.CreateRagdollController(StudioRenderer.EntityId, "gordon");
                 AddPlayer = false;
             }
 
@@ -61,19 +64,31 @@ namespace GoldsrcPhysics.ExportAPIs
             if(LastSeq!=Pistol&&CurSeq==Pistol)
             {
                 //enable ragdoll
-                RagdollAPI.StartRagdoll(StudioRenderer.EntityId);
+                PhysicsMain.StartRagdoll(StudioRenderer.EntityId);
+                PhysicsMain.SetVelocity(StudioRenderer.EntityId, (curent->origin - LastOrigin)*2);
             }
             else if(LastSeq==Pistol&&CurSeq==Pistol)
             {
                 //update bone 
-                RagdollAPI.SetupBonesPhysically(StudioRenderer.EntityId);
+                PhysicsMain.SetupBonesPhysically(StudioRenderer.EntityId);
             }
             else if(LastSeq==Pistol&&CurSeq!=Pistol)
             {
                 //disable ragdoll
-                RagdollAPI.StopRagdoll(StudioRenderer.EntityId);
+                PhysicsMain.StopRagdoll(StudioRenderer.EntityId);
             }
             LastSeq = CurSeq;
+            
+            var e = 0.00001f;
+            //if (
+            //    StudioRenderer.NativePointer->m_pCurrentEntity->curstate.velocity.Length > e||
+            //    StudioRenderer.NativePointer->m_pCurrentEntity->baseline.velocity.Length>e||
+            //     (curent->prevstate.origin-curent->origin).Length>e||
+            //     curent->prevstate.basevelocity.Length>e||
+            //     curent->prevstate.velocity.Length>e
+            //    )
+            //    throw new Exception();
+            LastOrigin = curent->origin;
         }
     }
 }

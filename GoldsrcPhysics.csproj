@@ -81,6 +81,9 @@
     <Reference Include="DemoFramework">
       <HintPath>..\..\..\Downloads\BulletSharpPInvoke-0.11\BulletSharp\demos\bin\Debug\DemoFramework.dll</HintPath>
     </Reference>
+    <Reference Include="OpenGL.Net, Version=0.8.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\OpenGL.Net.0.8.4\lib\net461\OpenGL.Net.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
@@ -95,6 +98,8 @@
     <Compile Include="Attachment.cs" />
     <Compile Include="BodyPicker.cs" />
     <Compile Include="BoneAccessor.cs" />
+    <Compile Include="Graphics\GL.cs" />
+    <Compile Include="Graphics\OpenGLDrawContext.cs" />
     <Compile Include="Ragdoll.cs" />
     <Compile Include="BRigidbody.cs" />
     <Compile Include="BWorld.cs" />
@@ -122,13 +127,16 @@
     <Compile Include="PhyConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RagdollBuilder.cs" />
-    <Compile Include="ExportAPIs\RagdollAPI.cs" />
+    <Compile Include="PhysicsFileProvider.cs" />
     <Compile Include="RagdollManager.cs" />
     <Compile Include="Simulation.cs" />
     <Compile Include="ExportAPIs\TestAPI.cs" />
     <Compile Include="Utils\BulletHelper.cs" />
+    <Compile Include="Utils\GBConstant.cs" />
     <Compile Include="Utils\MathExtensions.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

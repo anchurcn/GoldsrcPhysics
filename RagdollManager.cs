@@ -1,6 +1,7 @@
 ﻿using BulletSharp.Math;
 using GoldsrcPhysics.ExportAPIs;
 using GoldsrcPhysics.Goldsrc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,6 +27,12 @@ namespace GoldsrcPhysics
         List<IGoldsrcBehaviour> PhysicsServicesList { get; }
         //access in O(1)
         Ragdoll[] Ragdolls = new Ragdoll[4096];//entityId->BRagdoll
+
+        public void SetVelocity(int entityId,Vector3 v)
+        {
+            Ragdolls[entityId].SetVelocity(v);
+        }
+
         //not null ragdoll index
         List<int> Register = new List<int>();
 

@@ -1,4 +1,5 @@
 ﻿using BulletSharp.Math;
+using System;
 using System.Runtime.InteropServices;
 
 namespace GoldsrcPhysics.Goldsrc
@@ -15,7 +16,15 @@ namespace GoldsrcPhysics.Goldsrc
         [FieldOffset(0)]
         public fixed float M[3 * 4];
 
-        public BulletSharp.Math.Vector3 Origin { get => new Vector3(M[3], M[7], M[11]); }
+        public BulletSharp.Math.Vector3 Origin { 
+            get => new Vector3(M[3], M[7], M[11]);
+            set 
+            {
+                M[3] = value.X;
+                M[7] = value.Y;
+                M[11] = value.Z;
+            } 
+        }
 
         public static Matrix34f Identity
         {
@@ -79,14 +88,18 @@ namespace GoldsrcPhysics.Goldsrc
                 Row3 = *((Vector4*)&col3)
             };
         }
-        
+
         /// <summary>
         /// 将儿子的局部变换转化为世界变换，用的是矩阵乘法
+        /// 如果translation在同一列，则
+        /// lhs is parent world transform
+        /// rhs is child's local transform
+        /// result is child's world transform
         /// 
         /// </summary>
-        /// <param name="lhs">parent world transform</param>
-        /// <param name="rhs">child's local transform</param>
-        /// <param name="res">child's world transform</param>
+        /// <param name="lhs"></param>
+        /// <param name="rhs"></param>
+        /// <param name="res"></param>
         public static void ConcatTransforms(in Matrix34f lhs, in Matrix34f rhs, out Matrix34f result)
         {
             Matrix34f res = new Matrix34f();
@@ -115,6 +128,44 @@ namespace GoldsrcPhysics.Goldsrc
             res.M[11] = lhs[2 * 4 + 0] * rhs[0 * 4 + 3] + lhs[2 * 4 + 1] * rhs[1 * 4 + 3] +
                 lhs[2 * 4 + 2] * rhs[2 * 4 + 3] + lhs[2 * 4 + 3];
             result = res;
+        }
+        public static void AngleQuaternion(float* angles, out Quaternion quaternion)
+        {
+            quaternion = new Quaternion();
+            float angle;
+            float sr, sp, sy, cr, cp, cy;
+
+            // FIXME: rescale the inputs to 1/2 angle
+            angle = angles[2] * 0.5f;
+            sy = (float)Math.Sin(angle);
+            cy = (float)Math.Cos(angle);
+            angle = angles[1] * 0.5f;
+            sp = (float)Math.Sin(angle);
+            cp = (float)Math.Cos(angle);
+            angle = angles[0] * 0.5f;
+            sr = (float)Math.Sin(angle);
+            cr = (float)Math.Cos(angle);
+
+            quaternion[0] = sr * cp * cy - cr * sp * sy; // X
+            quaternion[1] = cr * sp * cy + sr * cp * sy; // Y
+            quaternion[2] = cr * cp * sy - sr * sp * cy; // Z
+            quaternion[3] = cr * cp * cy + sr * sp * sy; // W
+        }
+        public static void QuaternionMatrix(Quaternion quaternion, out Matrix34f  result )
+        {
+            Matrix34f matrix = new Matrix34f();
+            matrix.M[0*4+0] =(float)(1.0 - 2.0 * quaternion[1] * quaternion[1] - 2.0 * quaternion[2] * quaternion[2]);
+            matrix.M[1*4+0] =(float)(2.0 * quaternion[0] * quaternion[1] + 2.0 * quaternion[3] * quaternion[2]);
+            matrix.M[2*4+0] =(float)(2.0 * quaternion[0] * quaternion[2] - 2.0 * quaternion[3] * quaternion[1]);
+                           
+            matrix.M[0*4+1] =(float)(2.0 * quaternion[0] * quaternion[1] - 2.0 * quaternion[3] * quaternion[2]);
+            matrix.M[1*4+1] =(float)(1.0 - 2.0 * quaternion[0] * quaternion[0] - 2.0 * quaternion[2] * quaternion[2]);
+            matrix.M[2*4+1] =(float)(2.0 * quaternion[1] * quaternion[2] + 2.0 * quaternion[3] * quaternion[0]);
+                           
+            matrix.M[0*4+2] =(float)(2.0 * quaternion[0] * quaternion[2] + 2.0 * quaternion[3] * quaternion[1]);
+            matrix.M[1*4+2] =(float)(2.0 * quaternion[1] * quaternion[2] - 2.0 * quaternion[3] * quaternion[0]);
+            matrix.M[2*4+2] =(float)(1.0 - 2.0 * quaternion[0] * quaternion[0] - 2.0 * quaternion[1] * quaternion[1]);
+            result = matrix;
         }
     }
 

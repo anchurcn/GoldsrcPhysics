@@ -147,6 +147,10 @@ namespace GoldsrcPhysics
             }
             ReadPoseFromRenderer();
             AddToWorld();//将布娃娃添加进物理世界
+            //var bone = BulletHelper.RandomInt(0, RigidBodies.Length);
+            //var x = BulletHelper.RandomInt(50, 70);
+            //var y = BulletHelper.RandomInt(50, 70);
+            //RigidBodies[bone].ApplyImpulse(new Vector3(x, y, 0), Vector3.Zero);
             Debug.LogLine("ragdoll start to control entity {0}.", EntityId);
         }
         public void DisableRagdoll()

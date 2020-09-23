@@ -39,6 +39,7 @@ namespace GoldsrcPhysics.Utils
             return result;
         }
         
+        
         public static void Transform(in Vector3 vector, in Matrix transform, out Vector3 result)
         {
             result = new Vector3(

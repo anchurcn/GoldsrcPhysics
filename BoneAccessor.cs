@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using static GoldsrcPhysics.Goldsrc.Studio_h;
 
 namespace GoldsrcPhysics
 {
@@ -13,7 +15,7 @@ namespace GoldsrcPhysics
     {
         public static BoneAccessor GetCurrent()
         {
-            return new BoneAccessor();
+            return new TPoseBoneAccessor();
         }
 
         public static BoneAccessor Get(string name)
@@ -29,25 +31,65 @@ namespace GoldsrcPhysics
         public float Scale { get; set; } = 1f;
         public int BoneCount { get => StudioRenderer.BoneCount; }
 
-        public Matrix34f GetLocalTransform(int boneId)
+        public virtual Matrix34f GetLocalTransform(int boneId)
         {
             return (StudioRenderer.ScaledBoneTransform[boneId] * ((Matrix)StudioRenderer.ScaledBoneTransform[StudioRenderer.Bones[boneId].parent]).GetInverse())*Scale;
         }
-        public Matrix34f GetLocalToWorldTransformation(int boneId)
+        public virtual Matrix34f GetLocalToWorldTransformation(int boneId)
         {
             return StudioRenderer.ScaledBoneTransform[boneId]*Scale;
         }
-        public Matrix34f GetWorldToLocalTransformation(int boneId)
+        public virtual Matrix34f GetWorldToLocalTransformation(int boneId)
         {
             return (((Matrix)StudioRenderer.ScaledBoneTransform[boneId]).GetInverse())*Scale;
         }
-        public Vector3 Pos(int boneId)
+        public virtual Vector3 Pos(int boneId)
         {
             return StudioRenderer.ScaledBoneTransform[boneId].Origin*Scale;
         }
-        public Matrix GetWorldTransform(int boneId)
+        public virtual Matrix GetWorldTransform(int boneId)
         {
             return StudioRenderer.ScaledBoneTransform[boneId] * Scale;
+        }
+    }
+    public unsafe class TPoseBoneAccessor:BoneAccessor
+    {
+        private Matrix34f[] BoneTransform;
+        public TPoseBoneAccessor()
+        {
+            var studioHeader = StudioRenderer.NativePointer->m_pStudioHeader;
+            var bones = (mstudiobone_t*)((byte*)studioHeader + studioHeader->boneindex);
+            BoneTransform = new Matrix34f[StudioRenderer.BoneCount];
+
+            Matrix34f matrix = new Matrix34f();
+            Quaternion q = new Quaternion();
+            Matrix34f.AngleQuaternion(&bones[0].value[3], out q);
+            Matrix34f.QuaternionMatrix(q, out matrix);
+            matrix.Origin = new Vector3(bones[0].value[0], bones[0].value[1], bones[0].value[2]);
+            Matrix34f rebaseTransform = Matrix34f.Zero;
+            rebaseTransform.M[1] = -1;
+            rebaseTransform.M[4] = 1;
+            rebaseTransform.M[10] = 1;
+            Matrix34f.ConcatTransforms(rebaseTransform, matrix, out BoneTransform[0]);
+
+            for (int i = 1; i < StudioRenderer.BoneCount; i++)
+            {
+                Matrix34f.AngleQuaternion(&bones[i].value[3], out q);
+                Matrix34f.QuaternionMatrix(q, out matrix);
+                matrix.Origin = new Vector3(bones[i].value[0], bones[i].value[1], bones[i].value[2]);
+                Matrix34f.ConcatTransforms(BoneTransform[bones[i].parent], matrix, out BoneTransform[i]);
+            }
+            Scale = GBConstant.G2BScale;
+        }
+        public override Vector3 Pos(int boneId)
+        {
+            return BoneTransform[boneId].Origin*Scale;
+        }
+        public override Matrix GetWorldTransform(int boneId)
+        {
+            var matrix = BoneTransform[boneId];
+            matrix.Origin *= Scale;
+            return matrix;
         }
     }
 }

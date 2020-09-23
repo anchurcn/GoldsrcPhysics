@@ -7,6 +7,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Json;
 using static GoldsrcPhysics.Utils.BulletHelper;
+/*
+ * for matrix that translation on a column
+ * Local = Child * Parent^-1
+ * Child = Local * Parent
+ * Parent = Local^-1 * Child
+ * ( Local means Child's local transform to Parent)
+ * 
+ * */
 
 namespace GoldsrcPhysics
 {
@@ -159,12 +167,15 @@ namespace GoldsrcPhysics
             //head
             var head = accessor.Pos(info.Head);
             var headWidth = bodyWidth / 2.5f;//躯干是头的2.5倍
-            var headRaito = 5.85f / 9;//头宽高比
+            var headRaito = 5.85f / 8.1f;//头宽高比
             var headHeight = headWidth / headRaito;
             var headShape = new CapsuleShape(headWidth / 2, headHeight - headWidth);
             var rigidOrigin = head;
             rigidOrigin.Z += headHeight / 2;
-            var headRigid = Matrix.Translation(rigidOrigin).LookAt(in head, in Vector3.UnitY);
+            rigidOrigin.X += headWidth / 4.6f;
+            var headLookAt = head;
+            headLookAt.X += headWidth / 4.6f;
+            var headRigid = Matrix.Translation(rigidOrigin).LookAt(in headLookAt, in Vector3.UnitY);
             var headBone = accessor.GetWorldTransform(info.Head);
             ragdoll.RigidBodies[(int)BodyPart.Head] = BulletHelper.CreateBoneRigidbody(1, ref headBone, ref headRigid, headShape);
             ragdoll.RigidBodies[(int)BodyPart.Head].UserIndex = info.Head;
@@ -221,7 +232,14 @@ namespace GoldsrcPhysics
             //==============Constraint=============
             Debug.LogLine("Now setup constraint...");
             var bodys = ragdoll.RigidBodies;
-            ragdoll.Constraints[0] = CreateJoint(bodys[(int)BodyPart.Head], bodys[(int)BodyPart.Pelvis], head);
+            //ragdoll.Constraints[0] = CreateJoint(bodys[(int)BodyPart.Head], bodys[(int)BodyPart.Pelvis], head);
+            var bodyHead = bodys[(int)BodyPart.Head];
+            var bodyPelvis = bodys[(int)BodyPart.Pelvis];
+            var jointTrans = Matrix.Translation(head).LookAt(rigidOrigin, Vector3.UnitX);
+            var localHead = jointTrans * bodyHead.WorldTransform.GetInverse();
+            var localPelvis = jointTrans * bodyPelvis.WorldTransform.GetInverse();
+            ragdoll.Constraints[0] = new ConeTwistConstraint(bodyHead, bodyPelvis, localHead, localPelvis);
+            (ragdoll.Constraints[0] as ConeTwistConstraint).SetLimit((float)Math.PI / 7, (float)Math.PI / 7, (float)Math.PI / 4);
             ragdoll.Constraints[1] = CreateJoint(bodys[(int)BodyPart.LeftArm], bodys[(int)BodyPart.Pelvis], lArm);
             ragdoll.Constraints[2] = CreateJoint(bodys[(int)BodyPart.RightArm], bodys[(int)BodyPart.Pelvis], rArm);
             ragdoll.Constraints[3] = CreateJoint(bodys[(int)BodyPart.LeftElbow], bodys[(int)BodyPart.LeftArm], lElbow);
@@ -236,6 +254,7 @@ namespace GoldsrcPhysics
                 i.SetDamping(0.05f, 0.85f);
                 i.DeactivationTime = 0.8f;
                 i.SetSleepingThresholds(1.6f, 2.5f);
+                i.Friction = 2;
             }
             // damping, friction and restitution document forum
             //https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=8100
@@ -243,7 +262,7 @@ namespace GoldsrcPhysics
             // https://github.com/bulletphysics/bullet3/issues/345
             foreach (var i in ragdoll.Constraints)
             {
-                (i as Point2PointConstraint).Setting.Damping = 0.98f;
+                i.DebugDrawSize = 5;
             }
             Debug.LogLine("Bipped build complete.");
             return ragdoll;

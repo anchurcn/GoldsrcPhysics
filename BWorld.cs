@@ -1,6 +1,7 @@
 ﻿using BulletSharp;
 using BulletSharp.Math;
 using GoldsrcPhysics.Goldsrc;
+using GoldsrcPhysics.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,7 +24,7 @@ namespace GoldsrcPhysics
 
             //set debug draw
             World.DebugDrawer = new PhysicsDebugDraw(new GoldsrcDefaultDrawContext());
-            World.DebugDrawer.DebugMode = DebugDrawModes.All;
+            World.DebugDrawer.DebugMode = DebugDrawModes.DrawConstraints| DebugDrawModes.DrawConstraintLimits| DebugDrawModes.DrawWireframe| DebugDrawModes.DrawFastWireframe;
             Debug.LogLine("Debug Draw Mode: {0}", World.DebugDrawer.DebugMode.ToString());
 
             Instance = World;
