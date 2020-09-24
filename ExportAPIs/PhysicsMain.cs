@@ -7,6 +7,7 @@ using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -43,6 +44,8 @@ namespace GoldsrcPhysics.ExportAPIs
 
         private static List<RigidBody> SceneStaticObjects { get; } = new List<RigidBody>();
 
+        private static PickerManager PickerManager { get; } = new PickerManager();
+
         private static bool IsPaused;
 
         #endregion
@@ -55,15 +58,11 @@ namespace GoldsrcPhysics.ExportAPIs
         {
             MethodInfo methodInfo = typeof(PhysicsMain).GetMethod(name);
 
-            var paramsInfo = methodInfo.GetParameters();
-            var argTypes = new Type[paramsInfo.Length];
-            for (int i = 0; i < argTypes.Length; i++)
-            {
-                argTypes[i] = paramsInfo[i].ParameterType;
-            }
+            var argTypes = methodInfo.GetParameters().Select(x=>x.ParameterType);
+
             // also mark this delegate type with [UnmanagedFunctionPointer(CallingConvention.StdCall)] attribute
             // default marshal calling convension is stdcall so we don't need to mark explicit
-            Type delegateType = DelegateCreator.NewDelegateType(methodInfo.ReturnType,argTypes);
+            Type delegateType = DelegateCreator.NewDelegateType(methodInfo.ReturnType,argTypes.ToArray());
 
             var delegateInstance = Delegate.CreateDelegate(delegateType, methodInfo);
 
@@ -101,7 +100,7 @@ namespace GoldsrcPhysics.ExportAPIs
         /// </summary>
         /// <param name="pStudioRenderer">the address of StudioModelRenderer's first field. (m_clTime)</param>
         /// <param name="lastFieldAddress">the address of StudioModelRenderer's last field. (m_plighttransform)</param>
-        public static unsafe void InitSystem(void* pStudioRenderer,void* lastFieldAddress)
+        public static unsafe void InitSystem(void* pStudioRenderer,void* lastFieldAddress,void* engineStudioAPI)
         {
             //register goldsrc global variables
             //拿到金源引擎的API，使物理引擎可以访问缓存的模型信息、地图信息等
@@ -110,7 +109,7 @@ namespace GoldsrcPhysics.ExportAPIs
             StudioRenderer.Drawer = BWorld.Instance.DebugDrawer;
             RagdollManager = new RagdollManager();
             LocalBodyPicker = new LocalPlayerBodyPicker();
-
+            IEngineStudio.Init((EngineStudioAPI*)engineStudioAPI);
             //Validation
             if ((void*)(&StudioRenderer.NativePointer->m_plighttransform)!=lastFieldAddress)
                 throw new Exception("studio model renderer is invalid.");
@@ -217,9 +216,48 @@ namespace GoldsrcPhysics.ExportAPIs
             RagdollManager.ChangeOwner(oldEntity, newEntity);
         }
 
-        public static void SetVelocity(int entityId, Vector3 v)
+        public static void SetVelocity(int entityId, Vector3* v)
         {
-            RagdollManager.SetVelocity(entityId, v);
+            RagdollManager.SetVelocity(entityId, *v);
+        }
+        public static void DisposeRagdollController(int entityId)
+        {
+            RagdollManager.DisposeRagdollController(entityId);
+        }
+        public void ImpulseBone(int entityId, int boneId, Vector3* force)
+        {
+            RagdollManager.ImpulseBone(entityId, boneId, *force);
+        }
+        public void ClearRagdoll()
+        {
+            RagdollManager.ClearRagdoll();
+        }
+        public void HeadShootRagdoll(int entityId, Vector3* force)
+        {
+            RagdollManager.HeadShootRagdoll(entityId, *force);
+        }
+        #endregion
+
+        #region Interaction
+
+        /// <summary>
+        /// Set an explosion on the specified position.
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <param name="density"></param>
+        public static void Explosion(Vector3* pos,float density)
+        {
+            
+        }
+
+        /// <summary>
+        /// Shoot an invisable bullet to apply impulse to the rigidbody it hits.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        public static void Shoot(Vector3* from,Vector3* to)
+        {
+
         }
         #endregion
 

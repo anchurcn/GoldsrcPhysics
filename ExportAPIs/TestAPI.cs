@@ -42,7 +42,7 @@ namespace GoldsrcPhysics.ExportAPIs
             if(AddPlayer)
             {
                 //new ragdoll
-                PhysicsMain.CreateRagdollController(StudioRenderer.EntityId, "gordon");
+                PhysicsMain.CreateRagdollControllerHeader(StudioRenderer.EntityId,StudioRenderer.StudioHeader );
                 AddPlayer = false;
             }
 

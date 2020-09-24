@@ -80,12 +80,14 @@ namespace GoldsrcPhysics
         {
             var mod=IEngineStudio.GetModelByIndex(modelIndex);
             string name = Marshal.PtrToStringAnsi((IntPtr)mod->name);
+            name = Path.GetFileNameWithoutExtension(name);
             return BuildBipped(BippedBone.Get(name), BoneAccessor.Get(name));
         }
         public unsafe static Ragdoll Build(Studio_h.studiohdr_t* hdr)
         {
             string name = Marshal.PtrToStringAnsi((IntPtr)hdr->name);
-            return BuildBipped(BippedBone.Get(name), BoneAccessor.Get(name));
+            name = Path.GetFileNameWithoutExtension(name);
+            return BuildBipped(BippedBone.Get(name), BoneAccessor.Get(hdr));
         }
         public static Ragdoll Build(string modelName, BuildOption buildOption)
         {

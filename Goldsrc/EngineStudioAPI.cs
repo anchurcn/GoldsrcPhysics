@@ -9,6 +9,7 @@ using static GoldsrcPhysics.Goldsrc.Studio_h;
 
 namespace GoldsrcPhysics.Goldsrc
 {
+	[StructLayout(LayoutKind.Sequential)]
 	internal struct EngineStudioAPI
 	{
 		// Allocate number*size bytes and zero it

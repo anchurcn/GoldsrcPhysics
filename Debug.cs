@@ -2,7 +2,9 @@
 using BulletSharp.Math;
 using GoldsrcPhysics.Utils;
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace GoldsrcPhysics
 {
@@ -10,8 +12,12 @@ namespace GoldsrcPhysics
     {
         public static void LogLine(string format,params object[] args)
         {
-            //var log = string.Format(format, args);
-            //Console.WriteLine(log);
+            var log = string.Format(format, args);
+            Console.WriteLine(log);
+        }
+        public static async void LogToFile()
+        {
+            
         }
     }
     [StructLayout(LayoutKind.Sequential)]

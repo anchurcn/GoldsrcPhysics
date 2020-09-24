@@ -31,6 +31,10 @@ namespace GoldsrcPhysics
             var mod = IEngineStudio.GetModelByIndex(index);
             return new TPoseBoneAccessor(IEngineStudio.Mod_Extradata(mod));
         }
+        public static BoneAccessor Get(studiohdr_t* hdr)
+        {
+            return new TPoseBoneAccessor(hdr);
+        }
         
         public void SetTPose() { }
 

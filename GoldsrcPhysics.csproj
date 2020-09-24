@@ -98,6 +98,7 @@
     <Compile Include="Attachment.cs" />
     <Compile Include="BodyPicker.cs" />
     <Compile Include="BoneAccessor.cs" />
+    <Compile Include="Goldsrc\EngineStudioAPI.cs" />
     <Compile Include="Graphics\GL.cs" />
     <Compile Include="Graphics\OpenGLDrawContext.cs" />
     <Compile Include="Ragdoll.cs" />
