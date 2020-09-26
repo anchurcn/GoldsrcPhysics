@@ -67,7 +67,8 @@ namespace GoldsrcPhysics.ExportAPIs
             {
                 //enable ragdoll
                 PhysicsMain.StartRagdoll(StudioRenderer.EntityId);
-                PhysicsMain.SetVelocity(StudioRenderer.EntityId, (curent->origin - LastOrigin)*2);
+                var v = (curent->origin - LastOrigin) * 2;
+                PhysicsMain.SetVelocity(StudioRenderer.EntityId,&v );
             }
             else if(LastSeq==Pistol&&CurSeq==Pistol)
             {

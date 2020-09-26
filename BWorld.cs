@@ -24,7 +24,7 @@ namespace GoldsrcPhysics
 
             //set debug draw
             World.DebugDrawer = new PhysicsDebugDraw(new GoldsrcDefaultDrawContext());
-            World.DebugDrawer.DebugMode = DebugDrawModes.DrawConstraints| DebugDrawModes.DrawConstraintLimits| DebugDrawModes.DrawWireframe| DebugDrawModes.DrawFastWireframe;
+            World.DebugDrawer.DebugMode = DebugDrawModes.All;
             Debug.LogLine("Debug Draw Mode: {0}", World.DebugDrawer.DebugMode.ToString());
 
             Instance = World;

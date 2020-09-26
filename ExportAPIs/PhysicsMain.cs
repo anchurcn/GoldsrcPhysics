@@ -99,7 +99,8 @@ namespace GoldsrcPhysics.ExportAPIs
         /// if the struct layout is different from default layout, that will throw a fatal error.
         /// </summary>
         /// <param name="pStudioRenderer">the address of StudioModelRenderer's first field. (m_clTime)</param>
-        /// <param name="lastFieldAddress">the address of StudioModelRenderer's last field. (m_plighttransform)</param>
+        /// <param name="lastFieldAddress">>the address of StudioModelRenderer's last field. (m_plighttransform)</param>
+        /// <param name="engineStudioAPI">pIEngineStudio</param>
         public static unsafe void InitSystem(void* pStudioRenderer,void* lastFieldAddress,void* engineStudioAPI)
         {
             //register goldsrc global variables
@@ -115,7 +116,7 @@ namespace GoldsrcPhysics.ExportAPIs
                 throw new Exception("studio model renderer is invalid.");
         }
         /// <summary>
-        ///  Load map geomitry collider. 
+        /// Load map geomitry collider. 
         /// </summary>
         /// <param name="mapName"></param>
         public static void ChangeLevel(sbyte* mapName)
@@ -156,12 +157,12 @@ namespace GoldsrcPhysics.ExportAPIs
                 Time.SubStepCount += BWorld.Instance.StepSimulation(delta);
 
             //drawing
-            {//not covered draw
+            {//buffered draw
                 //BWorld.Instance.DebugDrawWorld();
-                //just put lines in buffer, then you should draw it on ViewDrawing
+                //just put lines in buffer, then you should draw it later.
             }
             {//normal draw
-                //(BWorld.Instance.DebugDrawer as PhysicsDebugDraw).DrawDebugWorld(BWorld.Instance);
+                (BWorld.Instance.DebugDrawer as PhysicsDebugDraw).DrawDebugWorld(BWorld.Instance);
             }
         }
 

@@ -21,6 +21,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Debug\GoldsrcPhysics.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -29,6 +30,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -98,6 +100,7 @@
     <Compile Include="Attachment.cs" />
     <Compile Include="BodyPicker.cs" />
     <Compile Include="BoneAccessor.cs" />
+    <Compile Include="PickerManager.cs" />
     <Compile Include="Goldsrc\EngineStudioAPI.cs" />
     <Compile Include="Graphics\GL.cs" />
     <Compile Include="Graphics\OpenGLDrawContext.cs" />

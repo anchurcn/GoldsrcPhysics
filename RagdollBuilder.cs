@@ -245,23 +245,75 @@ namespace GoldsrcPhysics
             //==============Constraint=============
             Debug.LogLine("Now setup constraint...");
             var bodys = ragdoll.RigidBodies;
-            //ragdoll.Constraints[0] = CreateJoint(bodys[(int)BodyPart.Head], bodys[(int)BodyPart.Pelvis], head);
-            var bodyHead = bodys[(int)BodyPart.Head];
-            var bodyPelvis = bodys[(int)BodyPart.Pelvis];
-            var jointTrans = Matrix.Translation(head).LookAt(rigidOrigin, Vector3.UnitX);
-            var localHead = jointTrans * bodyHead.WorldTransform.GetInverse();
-            var localPelvis = jointTrans * bodyPelvis.WorldTransform.GetInverse();
-            ragdoll.Constraints[0] = new ConeTwistConstraint(bodyHead, bodyPelvis, localHead, localPelvis);
-            (ragdoll.Constraints[0] as ConeTwistConstraint).SetLimit((float)Math.PI / 7, (float)Math.PI / 7, (float)Math.PI / 4);
+            {
+                //ragdoll.Constraints[0] = CreateJoint(bodys[(int)BodyPart.Head], bodys[(int)BodyPart.Pelvis], head);
+                var bodyHead = bodys[(int)BodyPart.Head];
+                var bodyPelvis = bodys[(int)BodyPart.Pelvis];
+                var jointTrans = Matrix.Translation(head).LookAt(rigidOrigin, Vector3.UnitX);
+                var localHead = jointTrans * bodyHead.WorldTransform.GetInverse();
+                var localPelvis = jointTrans * bodyPelvis.WorldTransform.GetInverse();
+                ragdoll.Constraints[0] = new ConeTwistConstraint(bodyHead, bodyPelvis, localHead, localPelvis);
+                (ragdoll.Constraints[0] as ConeTwistConstraint).SetLimit((float)Math.PI / 6.5f, (float)Math.PI / 6.5f, (float)Math.PI / 4);
+            }
             ragdoll.Constraints[1] = CreateJoint(bodys[(int)BodyPart.LeftArm], bodys[(int)BodyPart.Pelvis], lArm);
             ragdoll.Constraints[2] = CreateJoint(bodys[(int)BodyPart.RightArm], bodys[(int)BodyPart.Pelvis], rArm);
             ragdoll.Constraints[3] = CreateJoint(bodys[(int)BodyPart.LeftElbow], bodys[(int)BodyPart.LeftArm], lElbow);
             ragdoll.Constraints[4] = CreateJoint(bodys[(int)BodyPart.RightElbow], bodys[(int)BodyPart.RightArm], rElbow);
-            ragdoll.Constraints[5] = CreateJoint(bodys[(int)BodyPart.LeftHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.LeftHip));
-            ragdoll.Constraints[6] = CreateJoint(bodys[(int)BodyPart.RightHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.RightHip));
-            ragdoll.Constraints[7] = CreateJoint(bodys[(int)BodyPart.LeftKnee], bodys[(int)BodyPart.LeftHip], lKnee);
-            ragdoll.Constraints[8] = CreateJoint(bodys[(int)BodyPart.RightKnee], bodys[(int)BodyPart.RightHip], rKnee);
+            {
+                //ragdoll.Constraints[5] = CreateJoint(bodys[(int)BodyPart.LeftHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.LeftHip));
+                var bodyHipL = bodys[(int)BodyPart.LeftHip];
+                var bodyPelvis = bodys[(int)BodyPart.Pelvis];
+                var leglen = (accessor.Pos(info.LeftHip) - lKnee).Length;
+                var x = (float)Math.Cos(Math.PI / 6) * leglen;
+                var z= (float)Math.Sin(Math.PI / 6) * leglen;
+                var posA = accessor.Pos(info.LeftHip);
+                posA.Z += z;
+                posA.X += x;
+                var posB = lKnee;
+                var posCenter = (posA + posB) / 2;
 
+                var jointTrans = Matrix.Translation(accessor.Pos(info.LeftHip)).LookAt(posCenter,Vector3.UnitX);
+                var localPelvis = jointTrans * bodyPelvis.WorldTransform.GetInverse();
+                var localHipL = jointTrans * bodyHipL.WorldTransform.GetInverse();
+
+                ragdoll.Constraints[5] = new ConeTwistConstraint(bodyHipL, bodyPelvis, localHipL, localPelvis);
+                (ragdoll.Constraints[5] as ConeTwistConstraint).SetLimit((float)Math.PI / 6, (float)Math.PI / 3, (float)Math.PI / 6);
+            }
+            {
+                //ragdoll.Constraints[6] = CreateJoint(bodys[(int)BodyPart.RightHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.RightHip));
+                var bodyHipR = bodys[(int)BodyPart.RightHip];
+                var bodyPelvis = bodys[(int)BodyPart.Pelvis];
+                var leglen = (accessor.Pos(info.RightHip) - rKnee).Length;
+                var x = (float)Math.Cos(Math.PI / 6) * leglen;
+                var z = (float)Math.Sin(Math.PI / 6) * leglen;
+                var posA = accessor.Pos(info.RightHip);
+                posA.Z += z;
+                posA.X += x;
+                var posB = rKnee;
+                var posCenter = (posA + posB) / 2;
+
+                var jointTrans = Matrix.Translation(accessor.Pos(info.RightHip)).LookAt(posCenter, Vector3.UnitX);
+                var localPelvis = jointTrans * bodyPelvis.WorldTransform.GetInverse();
+                var localHipR = jointTrans * bodyHipR.WorldTransform.GetInverse();
+
+                ragdoll.Constraints[6] = new ConeTwistConstraint(bodyHipR, bodyPelvis, localHipR, localPelvis);
+                (ragdoll.Constraints[6] as ConeTwistConstraint).SetLimit((float)Math.PI / 6, (float)Math.PI / 3, (float)Math.PI / 6);
+            }
+            {
+                ragdoll.Constraints[7] = CreateJoint(bodys[(int)BodyPart.LeftKnee], bodys[(int)BodyPart.LeftHip], lKnee);
+                //var bodyHipL = bodys[(int)BodyPart.LeftHip];
+                //var bodyKneeL = bodys[(int)BodyPart.LeftKnee];
+
+
+                //var jointTrans = Matrix.Translation(lKnee).LookAt(lKnee+new Vector3(0,1,0),Vector3.UnitY);
+                //var localHipL = jointTrans * bodyHipL.WorldTransform.GetInverse();
+                //var localKneeL = jointTrans * bodyKneeL.WorldTransform.GetInverse();
+                //ragdoll.Constraints[7] = new HingeConstraint(bodyHipL, bodyKneeL, localHipL, localKneeL);
+                //(ragdoll.Constraints[7] as HingeConstraint).SetLimit((float)Math.PI/6, (float)Math.PI / 6);
+            }
+            {
+                ragdoll.Constraints[8] = CreateJoint(bodys[(int)BodyPart.RightKnee], bodys[(int)BodyPart.RightHip], rKnee);
+            }
             foreach (var i in ragdoll.RigidBodies)
             {
                 i.SetDamping(0.05f, 0.85f);
@@ -275,7 +327,7 @@ namespace GoldsrcPhysics
             // https://github.com/bulletphysics/bullet3/issues/345
             foreach (var i in ragdoll.Constraints)
             {
-                i.DebugDrawSize = 5;
+                i.DebugDrawSize = 3;
             }
             Debug.LogLine("Bipped build complete.");
             return ragdoll;
