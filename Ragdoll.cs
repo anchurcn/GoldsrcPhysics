@@ -60,6 +60,7 @@ namespace GoldsrcPhysics
         public TypedConstraint[] Constraints;
         
         bool Enabled = false;
+        bool HasTakenSnapshot;
         DynamicsWorld World = BWorld.Instance;
 
         public Ragdoll()
@@ -73,7 +74,14 @@ namespace GoldsrcPhysics
         public void SetupBones()
         {
             if(Enabled)
-            WritePoseToRenderer();
+            {
+                if (!HasTakenSnapshot)//Will use the first frame to initialize the ragdoll pose.
+                {
+                    ReadPoseFromRenderer();
+                    HasTakenSnapshot = true;
+                }
+                WritePoseToRenderer();
+            }
         }
 
         public void WritePoseToRenderer()
@@ -129,13 +137,14 @@ namespace GoldsrcPhysics
             }
         }
         /// <summary>
-        /// FIXME:the bodies may contains Last state On DisableRagdoll last call
+        /// 
         /// </summary>
         public void EnableRagdoll()
         {
             if (Enabled)
                 return;
             Enabled = true;
+            HasTakenSnapshot = false;
             {//reset body states
                 foreach (var i in RigidBodies)
                 {
@@ -147,10 +156,7 @@ namespace GoldsrcPhysics
             }
             ReadPoseFromRenderer();
             AddToWorld();//将布娃娃添加进物理世界
-            //var bone = BulletHelper.RandomInt(0, RigidBodies.Length);
-            //var x = BulletHelper.RandomInt(50, 70);
-            //var y = BulletHelper.RandomInt(50, 70);
-            //RigidBodies[bone].ApplyImpulse(new Vector3(x, y, 0), Vector3.Zero);
+            
             Debug.LogLine("ragdoll start to control entity {0}.", EntityId);
         }
         public void DisableRagdoll()

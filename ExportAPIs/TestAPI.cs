@@ -16,6 +16,7 @@ namespace GoldsrcPhysics.ExportAPIs
         static int Attack = 26;//撬棍攻击
         static int Pistol = 33;//拿着手枪
         static Vector3 LastOrigin;
+        public static float k=1.35f;
         /// <summary>
         /// calls on player render
         /// 应该在entity是玩家时调用
@@ -37,6 +38,7 @@ namespace GoldsrcPhysics.ExportAPIs
                 sbyte* mapName = (sbyte*)Marshal.StringToHGlobalAnsi(map);
                 PhysicsMain.ChangeLevel(mapName);
                 Initialized = true;
+                PhysicsMain.ShowConfigForm();
                 return;
             }
             if(AddPlayer)
@@ -67,7 +69,7 @@ namespace GoldsrcPhysics.ExportAPIs
             {
                 //enable ragdoll
                 PhysicsMain.StartRagdoll(StudioRenderer.EntityId);
-                var v = (curent->origin - LastOrigin) * 2;
+                var v = (curent->origin - LastOrigin) * k;
                 PhysicsMain.SetVelocity(StudioRenderer.EntityId,&v );
             }
             else if(LastSeq==Pistol&&CurSeq==Pistol)

@@ -55,14 +55,19 @@ namespace GoldsrcPhysics
 
         int ColorToInt(ref Vector3 c)
         {
-            return ((int)(c.X * 255.0f)) + ((int)(c.Y * 255.0f) << 8) + ((int)(c.Z * 255.0f) << 16);
+            return ((int)(c.X * 255.0f)) + ((int)(c.Y * 255.0f) << 8) + ((int)(c.Z * 255.0f) << 16)+ (255 << 24);
         }
 
         public override void Draw3DText(ref Vector3 location, string textString)
         {
             throw new NotImplementedException();
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <param name="color">float[4] RGB</param>
         public override void DrawLine(ref Vector3 from, ref Vector3 to, ref Vector3 color)
         {
             int intColor = ColorToInt(ref color);

@@ -23,7 +23,7 @@ namespace GoldsrcPhysics
             World.Gravity = new Vector3(0, 0, -9.8f);
 
             //set debug draw
-            World.DebugDrawer = new PhysicsDebugDraw(new GoldsrcDefaultDrawContext());
+            World.DebugDrawer = new PhysicsDebugDraw(new OpenGLDrawContext());
             World.DebugDrawer.DebugMode = DebugDrawModes.All;
             Debug.LogLine("Debug Draw Mode: {0}", World.DebugDrawer.DebugMode.ToString());
 

@@ -1,4 +1,5 @@
-﻿using OpenGL;
+﻿using BulletSharp.Math;
+using OpenGL;
 using System;
 using System.CodeDom;
 using System.Collections.Generic;
@@ -16,25 +17,22 @@ namespace GoldsrcPhysics.Graphics
 		{
 			[FieldOffset(0)]
 			public int Value;
-			 [FieldOffset(0)]
-			public sbyte A;
-			 [FieldOffset(1)]
-			public sbyte R;
-			 [FieldOffset(2)]
-			public sbyte G;
-			 [FieldOffset(3)]
-			public sbyte B;
-
-			public static implicit operator int(Colour x)
-			{
-				return x.Value;
-			}
-			public static implicit operator Colour(int x)
-			{
-				var res = new Colour();
-				res.Value = x;
-				return res;
-			}
+			[FieldOffset(0)]
+			public byte A;
+			[FieldOffset(1)]
+			public byte R;
+			[FieldOffset(2)]
+			public byte G;
+			[FieldOffset(3)]
+			public byte B;
+		}
+		[StructLayout( LayoutKind.Sequential)]
+		internal struct ColoredLine
+		{
+			internal Vector3 Pos1;
+			internal byte A1, R1, G1, B1;
+			internal Vector3 Pos2;
+			internal byte A2, R2, G2, B2;
 		}
 		public OpenGLDrawContext()
 		{
@@ -43,38 +41,45 @@ namespace GoldsrcPhysics.Graphics
 		}
 		public override unsafe void DrawLines(PositionColored* buffer, int elementCount)
         {
-			//Gl.Disable(EnableCap.DepthTest);
-			//Gl.RenderMode(RenderingMode.Render);
-			GL.glDisable(2929);
-			GL.glDisable(3553);
-			GL.glRenderMode(7168);
-			GL.glBegin(1);
-			//Gl.Begin(PrimitiveType.Lines);
-			var pointCount = elementCount * 2;
-			for (int i = 0; i < pointCount; i+=2)
+			////////////Option1
+			DrawLinesSlow(buffer, elementCount);
+
+			/////////////Option2 and option2 may be better
+			//DrawLinesFast(buffer, elementCount);			
+		}
+		private unsafe void DrawLinesSlow(PositionColored* buffer, int elementCount)
+		{
+			//FIXME: The lines drawn by this function are all black.
+
+			//GL.glDisable(2929);//depth
+			//GL.glDisable(2896);//lighting
+			GL.glDisable(3553);//texture
+			//GL.glRenderMode(7168);
+			GL.glBegin(1);//lines
+			for (ColoredLine* p = (ColoredLine*)buffer, end = &p[elementCount]; p < end; p++)
 			{
-				var r = (*(Colour*)(&buffer[i].Color)).R;
-				var g= (*((Colour*)(&buffer[i].Color))).G;
-				var b= (*((Colour*)(&buffer[i].Color))).B;
-				GL.glColor3b((byte)r, (byte)g, (byte)b);
-				GL.glVertex3fv((float*)&buffer[i].Position);
-				//Gl.Color3(r, g, b);
-				//Gl.Vertex3(buffer[i].Position.X,buffer[i].Position.Y,buffer[i].Position.Z);
-				r = (*((Colour*)(&buffer[i+1].Color))).R;
-				g = (*((Colour*)(&buffer[i+1].Color))).G;
-				b = (*((Colour*)(&buffer[i+1].Color))).B;
-				GL.glColor3b((byte)r, (byte)g, (byte)b);
-				GL.glVertex3fv((float*)&buffer[i + 1].Position);
-				//Gl.Color3(r, g, b);
-				//Gl.Vertex3(buffer[i + 1].Position.X, buffer[i + 1].Position.Y, buffer[i + 1].Position.Z);
+				GL.glColor3b(p->R1, p->G1, p->B1);
+				GL.glVertex3fv((float*)&p->Pos1);
+				GL.glColor3b(p->R2, p->G2, p->B2);
+				GL.glVertex3fv((float*)&p->Pos2);
 			}
 			GL.glEnd();
 			GL.glColor3f(1, 1, 1);
-			GL.glEnable(2929);
+			//GL.glEnable(2929);
+			//GL.glEnable(2896);
 			GL.glEnable(3553);
-			//Gl.End();
-			//Gl.Enable(EnableCap.DepthTest);
-
 		}
-}
+		/// <summary>
+		/// Using glDrawArray could be faster.
+		/// </summary>
+		/// <param name="buffer"></param>
+		/// <param name="elementCount"></param>
+		private unsafe void DrawLinesFast(PositionColored* buffer, int elementCount)
+		{
+			//TODO:
+			//Gl.VertexPointer(3, VertexPointerType.Float, sizeof(int), new IntPtr(buffer));
+			//Gl.ColorPointer(4, ColorPointerType.UnsignedByte, sizeof(Vector3), new IntPtr(buffer + sizeof(Vector3)));
+			//Gl.DrawArrays(PrimitiveType.Lines, 0, elementCount * 2);
+		}
+	}
 }

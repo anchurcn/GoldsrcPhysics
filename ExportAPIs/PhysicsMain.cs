@@ -2,6 +2,7 @@
 using BulletSharp;
 using BulletSharp.Math;
 using DemoFramework;
+using GoldsrcPhysics.Forms;
 using GoldsrcPhysics.Goldsrc;
 using GoldsrcPhysics.Utils;
 using System;
@@ -11,19 +12,20 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace GoldsrcPhysics.ExportAPIs
 {
-    public static class DelegateCreator
+    internal static class DelegateCreator
     {
-        public static readonly Func<Type[], Type> MakeNewCustomDelegate =
+        internal static readonly Func<Type[], Type> MakeNewCustomDelegate =
             (Func<Type[], Type>)Delegate.CreateDelegate
             (
                 typeof(Func<Type[], Type>),
                 typeof(Expression).Assembly.GetType("System.Linq.Expressions.Compiler.DelegateHelpers")
                 .GetMethod("MakeNewCustomDelegate", BindingFlags.NonPublic | BindingFlags.Static)
             );
-        public static Type NewDelegateType(Type ret, params Type[] parameters)
+        internal static Type NewDelegateType(Type ret, params Type[] parameters)
         {
             Type[] args = new Type[parameters.Length + 1];
             parameters.CopyTo(args, 0);
@@ -183,6 +185,14 @@ namespace GoldsrcPhysics.ExportAPIs
         {
 
         }
+        /// <summary>
+        /// Show configration form.
+        /// Using cvar to call this is recommended.
+        /// </summary>
+        public static void ShowConfigForm()
+        {
+            new Form1().Show();
+        }
         #endregion
 
         #region RagdollAPI
@@ -243,22 +253,59 @@ namespace GoldsrcPhysics.ExportAPIs
 
         /// <summary>
         /// Set an explosion on the specified position.
+        /// The impact range is calculated automatically via intensity.
         /// </summary>
         /// <param name="pos"></param>
-        /// <param name="density"></param>
-        public static void Explosion(Vector3* pos,float density)
+        /// <param name="intensity"></param>
+        public static void Explosion(Vector3* pos,float intensity)
         {
-            
+            float r = 6;
+            var world = BWorld.Instance;
+            for (int i = 0; i < world.NumCollisionObjects; i++)
+            {
+                var obj = world.CollisionObjectArray[i];
+                var point = obj.WorldTransform.Origin;
+                var dir = (point - *pos);
+                var distsqared = dir.LengthSquared;
+                if (distsqared<r*r)
+                {
+                    var force = intensity / distsqared;
+                    dir.Normalize();
+                    (obj as RigidBody)?.ApplyCentralImpulse(dir * force);
+                }
+            }
         }
 
         /// <summary>
         /// Shoot an invisable bullet to apply impulse to the rigidbody it hits.
         /// </summary>
-        /// <param name="from"></param>
-        /// <param name="to"></param>
-        public static void Shoot(Vector3* from,Vector3* to)
+        /// <param name="from">eye pos.</param>
+        /// <param name="force">contains direction and intensity.</param>
+        public static void Shoot(Vector3* from,Vector3* force)
         {
-
+            var to = *from+*force;
+            var world = BWorld.Instance;
+            using (var rayCallback = new ClosestRayResultCallback(ref *from, ref to))
+            {
+                world.RayTestRef(ref *from, ref to, rayCallback);
+                if (rayCallback.HasHit)
+                {
+                    Vector3 pickPosition = rayCallback.HitPointWorld;
+                    var body = rayCallback.CollisionObject as RigidBody;
+                    if (body != null)
+                    {
+                        body.ApplyCentralImpulseRef(ref *force);
+                    }
+                    //else
+                    //{
+                    //    var collider = rayCallback.CollisionObject as MultiBodyLinkCollider;
+                    //    if (collider != null)
+                    //    {
+                    //        (collider as RigidBody).ApplyCentralImpulseRef(ref *force);
+                    //    }
+                    //}
+                }
+            }
         }
         #endregion
 
