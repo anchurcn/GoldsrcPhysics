@@ -14,6 +14,18 @@ namespace GoldsrcPhysics
     {
         public static DynamicsWorld Instance { get; set; }//studio cl_time cl_oldtime can be used for simulating
 
+        internal static bool DebugDrawEnabled
+        {
+            get
+            {
+                return Instance.DebugDrawer.DebugMode != DebugDrawModes.None;
+            }
+            set
+            {
+                Instance.DebugDrawer.DebugMode = DebugDrawModes.All;
+            }
+        }
+
         public static void CreateInstance()
         {
             var CollisionConfiguration = new DefaultCollisionConfiguration();

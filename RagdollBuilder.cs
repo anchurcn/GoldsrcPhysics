@@ -344,7 +344,7 @@ namespace GoldsrcPhysics
         {
             KeyValues = new Dictionary<string, BippedBone>();
             DataContractJsonSerializer serializer = new DataContractJsonSerializer(KeyValues.GetType());
-            using (var stream = File.OpenRead("RagdollBone.json"))
+            using (var stream = File.OpenRead(@"gsphysics\RagdollBone.json"))
             {
                 KeyValues =(Dictionary<string,BippedBone>)serializer.ReadObject(stream);
             }

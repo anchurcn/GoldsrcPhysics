@@ -325,8 +325,8 @@ namespace GoldsrcPhysics.ExportAPIs
         #region PrivateMethod
         private static void LoadScene(string levelName)
         {
-            var path = PhyConfiguration.GetValue("MapDir");
-            var filePath = Path.Combine( path , levelName + ".bsp");
+            var path = PhyConfiguration.GetValue("ModDir");
+            var filePath = Path.Combine( path ,"maps", levelName + ".bsp");
             Debug.LogLine("Load map {0}", filePath);
 
             LoadBsp(filePath);

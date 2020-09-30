@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace GoldsrcPhysics
 {
-    public static class PhyConfiguration
+    internal static class PhyConfiguration
     {
         //public static dynamic Configuration { get; }
         private static Dictionary<string, string> Configuration { get; }
-        public static string GetValue(string key)
+        internal static string GetValue(string key)
         {
             //return Configuration[key];
             string result = null;
@@ -26,13 +26,13 @@ namespace GoldsrcPhysics
         static PhyConfiguration()
         {
             Configuration = new Dictionary<string, string>();
-            TextReader reader = new StreamReader(File.OpenRead(@"F:\anchur\goldsrcPhy\GoldsrcPhysics\docs\physics.cfg"),Encoding.Default);
+            TextReader reader = new StreamReader(File.OpenRead(@".\gsphysics\physics.cfg"),Encoding.Default);
             string line = reader.ReadLine();
             Debug.LogLine("reading physics.cfg...");
             while (line!=null)
             {
                 line.Trim();
-                if (line[0] == '#')
+                if (line[0] == '#'||line=="")
                 {
                     line = reader.ReadLine();
                     continue;
