@@ -6,6 +6,7 @@ using GoldsrcPhysics.Goldsrc;
 using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -104,6 +105,19 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <param name="engineStudioAPI">pIEngineStudio</param>
         public static unsafe void InitSystem(void* pStudioRenderer,void* lastFieldAddress,void* engineStudioAPI)
         {
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler((sender, e) =>
+            {
+                var exception = e.ExceptionObject as Exception;
+                if (exception != null)
+                {
+#if DEBUG
+                    StackTrace stackTrace = new StackTrace(exception, true);
+#else
+                    StackTrace stackTrace = new StackTrace(exception);
+#endif
+                    MessageBox.Show($"{exception.GetType().FullName}:\"{exception.Message}\"\n\n{exception.StackTrace}", "Unhandled Exception From GoldsrcPhysics");
+                }
+            });
             //Set native lib search path
             if (IntPtr.Size == 8)
             {
@@ -357,6 +371,7 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <param name="path"></param>
         private static void LoadBsp(string path)
         {
+            throw new Exception("exception was thrown.");
             List<int> invisableModelIndex = new List<int>();
             BspFile bsp = new BspFile();
             BspFile.LoadAllFromFile(bsp, BspFile.LoadFlags.Visuals | BspFile.LoadFlags.Entities, path);
