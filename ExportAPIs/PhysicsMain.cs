@@ -1,7 +1,6 @@
 ﻿using BspLib.Bsp;
 using BulletSharp;
 using BulletSharp.Math;
-using DemoFramework;
 using GoldsrcPhysics.Forms;
 using GoldsrcPhysics.Goldsrc;
 using GoldsrcPhysics.Utils;
@@ -34,7 +33,7 @@ namespace GoldsrcPhysics.ExportAPIs
         }
     }
     /// <summary>
-    /// Provide the interface to goldsrc that can access to
+    /// Provide the interface for goldsrc that can access to.
     /// </summary>
     public unsafe class PhysicsMain
     {
@@ -85,12 +84,12 @@ namespace GoldsrcPhysics.ExportAPIs
 
         #region Test
 
-#if DEBUG
+
         public static void Test()
         {
             TestAPI.Test();
         }
-#endif
+
 
         #endregion
 
@@ -105,6 +104,15 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <param name="engineStudioAPI">pIEngineStudio</param>
         public static unsafe void InitSystem(void* pStudioRenderer,void* lastFieldAddress,void* engineStudioAPI)
         {
+            //Set native lib search path
+            if (IntPtr.Size == 8)
+            {
+                Environment.SetEnvironmentVariable("PATH", Path.Combine(Directory.GetCurrentDirectory(), @"gsphysics\bin\x64"));
+            }
+            else if(IntPtr.Size==4)
+            {
+                Environment.SetEnvironmentVariable("PATH", Path.Combine(Directory.GetCurrentDirectory(), @"gsphysics\bin\x86"));
+            }
             //register goldsrc global variables
             //拿到金源引擎的API，使物理引擎可以访问缓存的模型信息、地图信息等
             BWorld.CreateInstance();
@@ -115,7 +123,7 @@ namespace GoldsrcPhysics.ExportAPIs
             IEngineStudio.Init((EngineStudioAPI*)engineStudioAPI);
             //Validation
             if ((void*)(&StudioRenderer.NativePointer->m_plighttransform)!=lastFieldAddress)
-                throw new Exception("studio model renderer is invalid.");
+                throw new Exception("Studio model renderer is invalid.");
         }
         /// <summary>
         /// Load map geomitry collider. 
@@ -449,7 +457,7 @@ namespace GoldsrcPhysics.ExportAPIs
             }
             foreach (var shape in shapes)
             {
-                SceneStaticObjects.Add( PhysicsHelper.CreateStaticBody(Matrix.Translation(0, 0, 0), shape, BWorld.Instance));
+                SceneStaticObjects.Add( BulletHelper.CreateStaticBody(Matrix.Translation(0, 0, 0), shape, BWorld.Instance));
             }
         }
         #endregion

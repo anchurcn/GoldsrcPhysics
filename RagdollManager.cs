@@ -3,6 +3,7 @@ using GoldsrcPhysics.ExportAPIs;
 using GoldsrcPhysics.Goldsrc;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -67,6 +68,7 @@ namespace GoldsrcPhysics
         /// <param name="modelName"></param>
         public void CreateRagdollController(int entityId, string modelName)
         {
+            modelName=Path.GetFileNameWithoutExtension(modelName);
             Ragdolls[entityId] = RagdollBuilder.Build(modelName, RagdollBuilder.BuildOption.Default, RagdollBuilder.BuildOption.Bipped);
             if(Ragdolls[entityId]!=null)
                 Register.Add(entityId);

@@ -31,6 +31,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Release\GoldsrcPhysics.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -79,9 +80,6 @@
     </Reference>
     <Reference Include="BulletSharp">
       <HintPath>..\..\..\Downloads\bulletsharp-pinvoke-demos-0.11\BulletSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="DemoFramework">
-      <HintPath>..\..\..\Downloads\BulletSharpPInvoke-0.11\BulletSharp\demos\bin\Debug\DemoFramework.dll</HintPath>
     </Reference>
     <Reference Include="OpenGL.Net, Version=0.8.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\OpenGL.Net.0.8.4\lib\net461\OpenGL.Net.dll</HintPath>

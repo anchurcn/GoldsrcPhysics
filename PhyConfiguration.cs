@@ -32,7 +32,7 @@ namespace GoldsrcPhysics
             while (line!=null)
             {
                 line.Trim();
-                if (line[0] == '#'||line=="")
+                if (line==""|| line[0] == '#')
                 {
                     line = reader.ReadLine();
                     continue;

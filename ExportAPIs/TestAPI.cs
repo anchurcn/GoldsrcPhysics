@@ -44,7 +44,12 @@ namespace GoldsrcPhysics.ExportAPIs
             if(AddPlayer)
             {
                 //new ragdoll
-                PhysicsMain.CreateRagdollControllerHeader(StudioRenderer.EntityId,StudioRenderer.StudioHeader );
+                //PhysicsMain.CreateRagdollControllerHeader(StudioRenderer.EntityId,StudioRenderer.StudioHeader );
+                {// model_t::name is model file name
+                    var pName = ((model_t*)StudioRenderer.NativePointer->m_pRenderModel)->name;
+                    var name = Marshal.PtrToStringAnsi((IntPtr)(pName));//will return model filename without extension
+                    PhysicsMain.CreateRagdollController(StudioRenderer.EntityId, pName);
+                }
                 AddPlayer = false;
             }
 
