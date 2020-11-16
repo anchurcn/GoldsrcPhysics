@@ -16,6 +16,10 @@ using System.Windows.Forms;
 
 namespace GoldsrcPhysics.ExportAPIs
 {
+    /// <summary>
+    /// Construct custom delegate type using given info.
+    /// Returns NOT generic delegate type that can be used by `Delegate.CreateDelegate`.
+    /// </summary>
     internal static class DelegateCreator
     {
         internal static readonly Func<Type[], Type> MakeNewCustomDelegate =
@@ -33,12 +37,13 @@ namespace GoldsrcPhysics.ExportAPIs
             return MakeNewCustomDelegate(args);
         }
     }
+
     /// <summary>
     /// Provide the interface for goldsrc that can access to.
     /// </summary>
-    public unsafe class PhysicsMain
+    public static unsafe class PhysicsMain
     {
-        #region static properties
+        #region Static Properties
 
         private static RagdollManager RagdollManager { get; set; }
 
@@ -63,7 +68,7 @@ namespace GoldsrcPhysics.ExportAPIs
             var argTypes = methodInfo.GetParameters().Select(x=>x.ParameterType);
 
             // also mark this delegate type with [UnmanagedFunctionPointer(CallingConvention.StdCall)] attribute
-            // default marshal calling convension is stdcall so we don't need to mark explicit
+            // edit: but default marshal calling convension is stdcall so we don't need to mark explicit
             Type delegateType = DelegateCreator.NewDelegateType(methodInfo.ReturnType,argTypes.ToArray());
 
             var delegateInstance = Delegate.CreateDelegate(delegateType, methodInfo);
@@ -115,7 +120,7 @@ namespace GoldsrcPhysics.ExportAPIs
 #else
                     StackTrace stackTrace = new StackTrace(exception);
 #endif
-                    MessageBox.Show($"{exception.GetType().FullName}:\"{exception.Message}\"\n\n{exception.StackTrace}", "Unhandled Exception From GoldsrcPhysics");
+                    MessageBox.Show($"{exception.GetType().FullName}:\"{exception.Message}\"\n\n{exception.StackTrace}", "Unhandled Exception From GoldsrcPhysics", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
                 }
             });
             //Set native lib search path
