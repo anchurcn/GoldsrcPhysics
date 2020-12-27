@@ -1,12 +1,12 @@
 ﻿using BspLib.Bsp;
 using BulletSharp;
 using BulletSharp.Math;
-using DemoFramework;
 using GoldsrcPhysics.Forms;
 using GoldsrcPhysics.Goldsrc;
 using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -16,6 +16,10 @@ using System.Windows.Forms;
 
 namespace GoldsrcPhysics.ExportAPIs
 {
+    /// <summary>
+    /// Construct custom delegate type using given info.
+    /// Returns NOT generic delegate type that can be used by `Delegate.CreateDelegate`.
+    /// </summary>
     internal static class DelegateCreator
     {
         internal static readonly Func<Type[], Type> MakeNewCustomDelegate =
@@ -33,12 +37,13 @@ namespace GoldsrcPhysics.ExportAPIs
             return MakeNewCustomDelegate(args);
         }
     }
+
     /// <summary>
-    /// Provide the interface to goldsrc that can access to
+    /// Provide the interface for goldsrc that can access to.
     /// </summary>
-    public unsafe class PhysicsMain
+    public static unsafe class PhysicsMain
     {
-        #region static properties
+        #region Static Properties
 
         private static RagdollManager RagdollManager { get; set; }
 
@@ -63,7 +68,7 @@ namespace GoldsrcPhysics.ExportAPIs
             var argTypes = methodInfo.GetParameters().Select(x=>x.ParameterType);
 
             // also mark this delegate type with [UnmanagedFunctionPointer(CallingConvention.StdCall)] attribute
-            // default marshal calling convension is stdcall so we don't need to mark explicit
+            // edit: but default marshal calling convension is stdcall so we don't need to mark explicit
             Type delegateType = DelegateCreator.NewDelegateType(methodInfo.ReturnType,argTypes.ToArray());
 
             var delegateInstance = Delegate.CreateDelegate(delegateType, methodInfo);
@@ -85,12 +90,12 @@ namespace GoldsrcPhysics.ExportAPIs
 
         #region Test
 
-#if DEBUG
+
         public static void Test()
         {
             TestAPI.Test();
         }
-#endif
+
 
         #endregion
 
@@ -105,6 +110,28 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <param name="engineStudioAPI">pIEngineStudio</param>
         public static unsafe void InitSystem(void* pStudioRenderer,void* lastFieldAddress,void* engineStudioAPI)
         {
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler((sender, e) =>
+            {
+                var exception = e.ExceptionObject as Exception;
+                if (exception != null)
+                {
+#if DEBUG
+                    StackTrace stackTrace = new StackTrace(exception, true);
+#else
+                    StackTrace stackTrace = new StackTrace(exception);
+#endif
+                    MessageBox.Show($"{exception.GetType().FullName}:\"{exception.Message}\"\n\n{exception.StackTrace}", "Unhandled Exception From GoldsrcPhysics", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
+                }
+            });
+            //Set native lib search path
+            if (IntPtr.Size == 8)
+            {
+                Environment.SetEnvironmentVariable("PATH", Path.Combine(Directory.GetCurrentDirectory(), @"gsphysics\bin\x64"));
+            }
+            else if(IntPtr.Size==4)
+            {
+                Environment.SetEnvironmentVariable("PATH", Path.Combine(Directory.GetCurrentDirectory(), @"gsphysics\bin\x86"));
+            }
             //register goldsrc global variables
             //拿到金源引擎的API，使物理引擎可以访问缓存的模型信息、地图信息等
             BWorld.CreateInstance();
@@ -115,7 +142,7 @@ namespace GoldsrcPhysics.ExportAPIs
             IEngineStudio.Init((EngineStudioAPI*)engineStudioAPI);
             //Validation
             if ((void*)(&StudioRenderer.NativePointer->m_plighttransform)!=lastFieldAddress)
-                throw new Exception("studio model renderer is invalid.");
+                throw new Exception("Studio model renderer is invalid.");
         }
         /// <summary>
         /// Load map geomitry collider. 
@@ -349,6 +376,7 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <param name="path"></param>
         private static void LoadBsp(string path)
         {
+            throw new Exception("exception was thrown.");
             List<int> invisableModelIndex = new List<int>();
             BspFile bsp = new BspFile();
             BspFile.LoadAllFromFile(bsp, BspFile.LoadFlags.Visuals | BspFile.LoadFlags.Entities, path);
@@ -449,7 +477,7 @@ namespace GoldsrcPhysics.ExportAPIs
             }
             foreach (var shape in shapes)
             {
-                SceneStaticObjects.Add( PhysicsHelper.CreateStaticBody(Matrix.Translation(0, 0, 0), shape, BWorld.Instance));
+                SceneStaticObjects.Add( BulletHelper.CreateStaticBody(Matrix.Translation(0, 0, 0), shape, BWorld.Instance));
             }
         }
         #endregion

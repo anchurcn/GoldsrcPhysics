@@ -85,6 +85,8 @@ namespace GoldsrcPhysics
         }
         public unsafe static Ragdoll Build(Studio_h.studiohdr_t* hdr)
         {
+            // The name from studioHeader is a internal name, change it in your modeName.qc file. 
+            // That's different from your model file name.
             string name = Marshal.PtrToStringAnsi((IntPtr)hdr->name);
             name = Path.GetFileNameWithoutExtension(name);
             return BuildBipped(BippedBone.Get(name), BoneAccessor.Get(hdr));
