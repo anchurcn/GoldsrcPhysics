@@ -1,0 +1,175 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{F5149884-C539-41FB-B035-84C312CB1656}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>GoldsrcPhysics</RootNamespace>
+    <AssemblyName>GoldsrcPhysics</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\..\bin\Debug\GoldsrcPhysics.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\..\bin\Release\GoldsrcPhysics.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BulletSharp">
+      <HintPath>..\..\deps\BulletSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net461\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Attachment.cs" />
+    <Compile Include="BodyPicker.cs" />
+    <Compile Include="BoneAccessor.cs" />
+    <Compile Include="BspLoader.cs" />
+    <Compile Include="Forms\Form1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\Form1.Designer.cs">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Goldsrc\Bsp\BspFile.cs" />
+    <Compile Include="Goldsrc\Bsp\Clipnode.cs" />
+    <Compile Include="Goldsrc\Bsp\Colour.cs" />
+    <Compile Include="Goldsrc\Bsp\Contents.cs" />
+    <Compile Include="Goldsrc\Bsp\Edge.cs" />
+    <Compile Include="Goldsrc\Bsp\EntityData.cs" />
+    <Compile Include="Goldsrc\Bsp\Face.cs" />
+    <Compile Include="Goldsrc\Bsp\Header.cs" />
+    <Compile Include="Goldsrc\Bsp\Leaf.cs" />
+    <Compile Include="Goldsrc\Bsp\Lump.cs" />
+    <Compile Include="Goldsrc\Bsp\Model.cs" />
+    <Compile Include="Goldsrc\Bsp\Node.cs" />
+    <Compile Include="Goldsrc\Bsp\Plane.cs" />
+    <Compile Include="Goldsrc\Bsp\TextureInfo.cs" />
+    <Compile Include="Goldsrc\Bsp\Version.cs" />
+    <Compile Include="MogreDebugDraw.cs" />
+    <Compile Include="PickerManager.cs" />
+    <Compile Include="Goldsrc\EngineStudioAPI.cs" />
+    <Compile Include="Graphics\GL.cs" />
+    <Compile Include="Graphics\OpenGLDrawContext.cs" />
+    <Compile Include="Ragdoll.cs" />
+    <Compile Include="BRigidbody.cs" />
+    <Compile Include="BWorld.cs" />
+    <Compile Include="Debug.cs" />
+    <Compile Include="DrawContext.cs" />
+    <Compile Include="GoldsrcPhysicsUtilities.cs" />
+    <Compile Include="Goldsrc\ComModel_h.cs" />
+    <Compile Include="Goldsrc\Custom_h.cs" />
+    <Compile Include="Goldsrc\GoldsrcDefaultDrawContext.cs" />
+    <Compile Include="Goldsrc\Matrix34f.cs" />
+    <Compile Include="Goldsrc\Structures.cs" />
+    <Compile Include="Goldsrc\StudioRenderer.cs" />
+    <Compile Include="Goldsrc\Studio_h.cs" />
+    <Compile Include="InteractionObject\GoldsrcBox.cs" />
+    <Compile Include="InteractionObject\GoldsrcRagdoll.cs" />
+    <Compile Include="InteractionObject\PhysicsBehaviour.cs" />
+    <Compile Include="LinearMath\BulletMathUtils.cs" />
+    <Compile Include="LinearMath\MathUtil.cs" />
+    <Compile Include="LinearMath\Matrix.cs" />
+    <Compile Include="LinearMath\Quaternion.cs" />
+    <Compile Include="LinearMath\Vector3.cs" />
+    <Compile Include="LinearMath\Vector4.cs" />
+    <Compile Include="ExportAPIs\PhysicsMain.cs" />
+    <Compile Include="PhyConfiguration.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RagdollBuilder.cs" />
+    <Compile Include="PhysicsFileProvider.cs" />
+    <Compile Include="RagdollManager.cs" />
+    <Compile Include="ExportAPIs\TestAPI.cs" />
+    <Compile Include="Utils\BulletHelper.cs" />
+    <Compile Include="Utils\GBConstant.cs" />
+    <Compile Include="Utils\MathExtensions.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Forms\Form1.resx">
+      <DependentUpon>Form1.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="Resources\favicon.ico" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent># copy GoldsrcPhysics.dll to game dir
+#copy "$(TargetPath)" "path\to\your\game\gsphysics\bin"
+copy "$(TargetPath)" "F:\anchur\goldsrcPhy\GoldsrcPhysics\bin\Debug"</PostBuildEvent>
+  </PropertyGroup>
+</Project>
