@@ -146,8 +146,8 @@ namespace GoldsrcPhysics.ExportAPIs
             StudioRenderer.Drawer = BWorld.Instance.DebugDrawer;
             IEngineStudio.Init((EngineStudioAPI*)engineStudioAPI);
             //Validation
-            if ((void*)(&StudioRenderer.NativePointer->m_plighttransform) != lastFieldAddress)
-                throw new Exception("Studio model renderer is invalid.");
+            //if ((void*)(&StudioRenderer.NativePointer->m_plighttransform) != lastFieldAddress)
+            //    throw new Exception("Studio model renderer is invalid.");
         }
         /// <summary>
         /// Load map geomitry collider. 
@@ -291,13 +291,13 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <param name="intensity"></param>
         public static void Explosion(Vector3* pos, float intensity)
         {
-            float r = 6;
+            float r = 30;
             var world = BWorld.Instance;
             for (int i = 0; i < world.NumCollisionObjects; i++)
             {
                 var obj = world.CollisionObjectArray[i];
                 var point = obj.WorldTransform.Origin;
-                var dir = (point - *pos);
+                var dir = (point - (*pos)*GBConstant.G2BScale);
                 var distsqared = dir.LengthSquared;
                 if (distsqared < r * r)
                 {
@@ -315,9 +315,10 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <param name="force">contains direction and intensity.</param>
         public static void Shoot(Vector3* from, Vector3* force)
         {
-            var to = *from + *force;
+            var gunPos = *from * GBConstant.G2BScale;
+            var to = gunPos + *force*GBConstant.G2BScale;
             var world = BWorld.Instance;
-            using (var rayCallback = new ClosestRayResultCallback(ref *from, ref to))
+            using (var rayCallback = new ClosestRayResultCallback(ref gunPos, ref to))
             {
                 world.RayTestRef(ref *from, ref to, rayCallback);
                 if (rayCallback.HasHit)
@@ -357,7 +358,7 @@ namespace GoldsrcPhysics.ExportAPIs
         private static void LoadScene(string levelName)
         {
             var path = PhyConfiguration.GetValue("ModDir");
-            var filePath = Path.Combine(path, "maps", levelName + ".bsp");
+            var filePath = Path.Combine(path,levelName);
             Debug.LogLine("Load map {0}", filePath);
 
             var bspLoader = new BspLoader(filePath);

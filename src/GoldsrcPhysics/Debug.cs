@@ -15,16 +15,18 @@ namespace GoldsrcPhysics
         {
             var log = string.Format(format, args);
             Console.WriteLine(log);
-            LogToFileAsync(log);
+            FileWriter.WriteLine(log);
+            FileWriter.Flush();
         }
         private static async void LogToFileAsync(string log)
         {
             await FileWriter.WriteLineAsync(log);
+            await FileWriter.FlushAsync();
         }
         static Debug()
         {
             var filepath = string.Format(@"gsphysics\logs\{0}.txt", DateTime.Now.ToFileTime());
-            var stream = File.Create(filepath, 1);
+            var stream = File.Create(filepath);
             FileWriter = new StreamWriter(stream);
         }
     }
