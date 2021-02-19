@@ -60,7 +60,7 @@ namespace GoldsrcPhysics.Goldsrc
 			// Other entity local information
 			int trivial_accept;
 
-			void* model;//model_t* model;         // cl.model_precache[ curstate.modelindes ];  all visible entities have a model
+			public model_t* model;//model_t* model;         // cl.model_precache[ curstate.modelindes ];  all visible entities have a model
 			void* efrag;//efrag_t* efrag;			// linked list of efrags
 			void* topnode;//mnode_t * topnode;		// for bmodels, first world node that splits bmodel, or NULL if not split
 

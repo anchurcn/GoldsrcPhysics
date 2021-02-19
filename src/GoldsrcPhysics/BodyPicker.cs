@@ -72,11 +72,10 @@ namespace GoldsrcPhysics
 
     public sealed class BodyPicker
     {
-        public bool IsFixedConstraint { get=>true; }//TODO
+        public bool IsFixedConstraint { get; set; } = true;
         public float OldPickingDist { get; set; }
-        public Vector3 Eye;
-        public Vector3 Dir;
-        public Vector3 TargetPoint;
+        public Vector3 Eye { get; set; }
+        public Vector3 TargetPoint { get; set; }
 
 
         private RigidBody _pickedBody;

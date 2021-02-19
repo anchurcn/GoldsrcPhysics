@@ -3,6 +3,7 @@ using BulletSharp.Math;
 using GoldsrcPhysics.Utils;
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -11,8 +12,18 @@ namespace GoldsrcPhysics
     public static class Debug
     {
         static TextWriter FileWriter { get; }
+        private static bool _logOn;
+        public static void LogLine()
+        {
+            if (!_logOn)
+                return;
+            FileWriter.WriteLine();
+            FileWriter.Flush();
+        }
         public static void LogLine(string format,params object[] args)
         {
+            if (!_logOn)
+                return;
             var log = string.Format(format, args);
             Console.WriteLine(log);
             FileWriter.WriteLine(log);
@@ -25,9 +36,15 @@ namespace GoldsrcPhysics
         }
         static Debug()
         {
-            var filepath = string.Format(@"gsphysics\logs\{0}.txt", DateTime.Now.ToFileTime());
-            var stream = File.Create(filepath);
-            FileWriter = new StreamWriter(stream);
+            var args=Environment.GetCommandLineArgs();
+            if (args.Any(x => x == "-phylog"))
+            {
+                _logOn = true;
+                var filepath = string.Format(@"gsphysics\logs\{0}.txt", DateTime.Now.ToFileTime());
+                var stream = File.Create(filepath);
+                FileWriter = new StreamWriter(stream);
+            }
+            _logOn = false; 
         }
     }
     [StructLayout(LayoutKind.Sequential)]

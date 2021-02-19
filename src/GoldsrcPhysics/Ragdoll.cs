@@ -4,6 +4,7 @@ using GoldsrcPhysics.Goldsrc;
 using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
+using static GoldsrcPhysics.Goldsrc.Studio_h;
 
 namespace GoldsrcPhysics
 {
@@ -53,34 +54,121 @@ namespace GoldsrcPhysics
     /// </summary>
     public unsafe class Ragdoll
     {
-        public int EntityId;
-        public Matrix[] BoneRelativeTransform;
-        public RagdollData RagdollData;
-        public RigidBody[] RigidBodies;
-        public TypedConstraint[] Constraints;
         
-        bool Enabled = false;
-        bool HasTakenSnapshot;
-        DynamicsWorld World = BWorld.Instance;
+        /// <summary>
+        /// The entity id that attached to.
+        /// </summary>
+        public int EntityId { get; set; }
 
-        public Ragdoll()
+        internal Matrix[] BoneRelativeTransform;
+        internal RagdollData RagdollData;
+        internal RigidBody[] RigidBodies;
+        internal TypedConstraint[] Constraints;
+
+        private readonly studiohdr_t* _pStudioHeader;
+
+        private bool _enabled = false;
+
+        internal DynamicsWorld World = BWorld.Instance;
+
+        /// <summary>
+        /// Instantiate a ragdoll for given model.
+        /// </summary>
+        /// <param name="pStudioHeader"></param>
+        public Ragdoll(studiohdr_t* pStudioHeader)
         {
-            
+            _pStudioHeader = pStudioHeader;
         }
-        
+
+        /// <summary>
+        /// Set pose for this ragdoll.
+        /// </summary>
+        /// <param name="pBoneWorldTransform"></param>
+        /// <param name="pStudioHeader"></param>
+        public void SetPose(float* pBoneWorldTransform)
+        {
+            mstudiobone_t* bones = (mstudiobone_t*)((byte*)_pStudioHeader + _pStudioHeader->boneindex);
+            StudioTransforms scaledBoneTransform = new StudioTransforms(pBoneWorldTransform);
+
+            //骨骼变换快照
+            for (int i = 0; i < _pStudioHeader->numbones; i++)
+            {
+                var parent = bones[i].parent;
+                if (parent == -1)
+                {
+                    BoneRelativeTransform[i] = scaledBoneTransform[i];
+                }
+                else
+                {
+                    BoneRelativeTransform[i] = scaledBoneTransform[i] *
+                        scaledBoneTransform[parent].GetInverse();
+                }
+            }
+            //初始化刚体变换
+            for (int i = 0; i < RigidBodies.Length; i++)
+            {
+                //先将骨骼变换赋给motionstate
+                (RigidBodies[i].MotionState as BoneMotionState).BoneTransform = scaledBoneTransform[RigidBodies[i].UserIndex];
+                //刚体变换
+                RigidBodies[i].WorldTransform = RigidBodies[i].MotionState.WorldTransform;
+            }
+        }
+
+        /// <summary>
+        /// The ragdoll start to control the entity that attached to.
+        /// </summary>
+        public void Enable()
+        {
+            if (_enabled)
+                return;
+            _enabled = true;
+
+            {//reset body states
+                foreach (var i in RigidBodies)
+                {
+                    i.ClearForces();
+                    i.LinearVelocity = Vector3.Zero;
+                    i.AngularVelocity = Vector3.Zero;
+                    i.Activate();
+                }
+            }
+            AddToWorld();//将布娃娃添加进物理世界
+
+            Debug.LogLine("ragdoll start to control entity {0}.", EntityId);
+        }
+
         /// <summary>
         /// 覆写骨骼变换
         /// </summary>
         public void SetupBones()
         {
-            if(Enabled)
-            {
-                if (!HasTakenSnapshot)//Will use the first frame to initialize the ragdoll pose.
-                {
-                    ReadPoseFromRenderer();
-                    HasTakenSnapshot = true;
-                }
+            if (_enabled)
                 WritePoseToRenderer();
+        }
+
+        internal void Dispose()
+        {
+            for (int i = 0; i < RigidBodies.Length; i++)
+            {
+                RigidBodies[i].Dispose();
+            }
+            for (int i = 0; i < Constraints.Length; i++)
+            {
+                Constraints[i].Dispose();
+            }
+        }
+
+        public void Disable()
+        {
+            _enabled = false;
+            RemoveFromWorld();
+            Debug.LogLine("ragdoll stop to control entity {0}.", EntityId);
+        }
+        public void SetVelocity(Vector3 v)
+        {
+            foreach (var i in RigidBodies)
+            {
+                i.LinearVelocity = v;
             }
         }
 
@@ -102,13 +190,8 @@ namespace GoldsrcPhysics
                 //Matrix34f.ConcatTransforms(in StudioRenderer.NativePointer->m_pbonetransform[StudioRenderer.Bones[i].parent],
                 //    in BoneRelativeTransform[i],
                 //    out StudioRenderer.NativePointer->m_pbonetransform[i]);
-                StudioRenderer.ScaledBoneTransform[i] =  BoneRelativeTransform[i]* StudioRenderer.ScaledBoneTransform[StudioRenderer.Bones[i].parent];
+                StudioRenderer.ScaledBoneTransform[i] = BoneRelativeTransform[i] * StudioRenderer.ScaledBoneTransform[StudioRenderer.Bones[i].parent];
             }
-        }
-
-        internal void Dispose()
-        {
-            throw new NotImplementedException();
         }
 
         public void ReadPoseFromRenderer()
@@ -117,13 +200,13 @@ namespace GoldsrcPhysics
             for (int i = 0; i < StudioRenderer.BoneCount; i++)
             {
                 var parent = StudioRenderer.Bones[i].parent;
-                if (parent==-1)
+                if (parent == -1)
                 {
                     BoneRelativeTransform[i] = StudioRenderer.ScaledBoneTransform[i];
                 }
                 else
                 {
-                    BoneRelativeTransform[i]= StudioRenderer.ScaledBoneTransform[i]*
+                    BoneRelativeTransform[i] = StudioRenderer.ScaledBoneTransform[i] *
                         StudioRenderer.ScaledBoneTransform[parent].GetInverse();
                 }
             }
@@ -136,42 +219,7 @@ namespace GoldsrcPhysics
                 RigidBodies[i].WorldTransform = RigidBodies[i].MotionState.WorldTransform;
             }
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        public void EnableRagdoll()
-        {
-            if (Enabled)
-                return;
-            Enabled = true;
-            HasTakenSnapshot = false;
-            {//reset body states
-                foreach (var i in RigidBodies)
-                {
-                    i.ClearForces();
-                    i.LinearVelocity = Vector3.Zero;
-                    i.AngularVelocity = Vector3.Zero;
-                    i.Activate();
-                }
-            }
-            ReadPoseFromRenderer();
-            AddToWorld();//将布娃娃添加进物理世界
-            
-            Debug.LogLine("ragdoll start to control entity {0}.", EntityId);
-        }
-        public void DisableRagdoll()
-        {
-            Enabled = false;
-            RemoveFromWorld();
-            Debug.LogLine("ragdoll stop to control entity {0}.", EntityId);
-        }
-        public void SetVelocity(Vector3 v)
-        {
-            foreach (var i in RigidBodies)
-            {
-                i.LinearVelocity = v;
-            }
-        }
+
         /// <summary>
         /// add to default world
         /// </summary>
@@ -183,7 +231,7 @@ namespace GoldsrcPhysics
             }
             for (int i = 0; i < Constraints.Length; i++)
             {
-                World.AddConstraint(Constraints[i],true);
+                World.AddConstraint(Constraints[i], true);
             }
         }
         private void RemoveFromWorld()
@@ -197,7 +245,7 @@ namespace GoldsrcPhysics
                 World.RemoveConstraint(Constraints[i]);
             }
         }
-        
+
     }
     /// <summary>
     /// Holds the offset between bone's world transform and rigidbody's world transform

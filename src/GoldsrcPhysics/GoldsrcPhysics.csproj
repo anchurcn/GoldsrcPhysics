@@ -97,6 +97,7 @@
     <Compile Include="BodyPicker.cs" />
     <Compile Include="BoneAccessor.cs" />
     <Compile Include="BspLoader.cs" />
+    <Compile Include="ExportAPIs\ManagedExport.cs" />
     <Compile Include="Forms\Form1.cs">
       <SubType>Form</SubType>
     </Compile>

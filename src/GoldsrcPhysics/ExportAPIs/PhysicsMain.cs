@@ -2,6 +2,7 @@
 using BulletSharp.Math;
 using GoldsrcPhysics.Forms;
 using GoldsrcPhysics.Goldsrc;
+using GoldsrcPhysics.Goldsrc.Bsp;
 using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
@@ -15,27 +16,7 @@ using System.Windows.Forms;
 
 namespace GoldsrcPhysics.ExportAPIs
 {
-    /// <summary>
-    /// Construct custom delegate type using given info.
-    /// Returns NOT generic delegate type that can be used by `Delegate.CreateDelegate`.
-    /// </summary>
-    internal static class DelegateCreator
-    {
-        internal static readonly Func<Type[], Type> MakeNewCustomDelegate =
-            (Func<Type[], Type>)Delegate.CreateDelegate
-            (
-                typeof(Func<Type[], Type>),
-                typeof(Expression).Assembly.GetType("System.Linq.Expressions.Compiler.DelegateHelpers")
-                .GetMethod("MakeNewCustomDelegate", BindingFlags.NonPublic | BindingFlags.Static)
-            );
-        internal static Type NewDelegateType(Type ret, params Type[] parameters)
-        {
-            Type[] args = new Type[parameters.Length + 1];
-            parameters.CopyTo(args, 0);
-            args[args.Length - 1] = ret;
-            return MakeNewCustomDelegate(args);
-        }
-    }
+    
 
     /// <summary>
     /// Provide the interface for goldsrc that can access to.
@@ -46,7 +27,7 @@ namespace GoldsrcPhysics.ExportAPIs
 
         private readonly static RagdollManager _ragdollManager = new RagdollManager();
 
-        private readonly static LocalPlayerBodyPicker _localBodyPicker = new LocalPlayerBodyPicker();
+        //private readonly static LocalPlayerBodyPicker _localBodyPicker = new LocalPlayerBodyPicker();
 
         private readonly static List<RigidBody> _sceneStaticObjects = new List<RigidBody>();
 
@@ -56,42 +37,13 @@ namespace GoldsrcPhysics.ExportAPIs
 
         #endregion
 
-        #region Get API pointer
-
-        // Hold these instances to avoid being collected by the GC
-        private readonly static List<object> _keepReference = new List<object>();
-        private static void* GetMethodPointer(string name)
+        #region Config
+        public static void Set([In]sbyte* key,[In]sbyte* value)
         {
-            MethodInfo methodInfo = typeof(PhysicsMain).GetMethod(name);
-
-            var argTypes = methodInfo.GetParameters().Select(x => x.ParameterType);
-
-            // also mark this delegate type with [UnmanagedFunctionPointer(CallingConvention.StdCall)] attribute
-            // edit: but default marshal calling convension is stdcall so we don't need to mark explicit
-            Type delegateType = DelegateCreator.NewDelegateType(methodInfo.ReturnType, argTypes.ToArray());
-
-            var delegateInstance = Delegate.CreateDelegate(delegateType, methodInfo);
-
-            _keepReference.Add(delegateType);
-            _keepReference.Add(delegateInstance);
-            return (void*)Marshal.GetFunctionPointerForDelegate(delegateInstance);
-        }
-        /// <summary>
-        /// Gives a pointer to a sizeof(void*) buffer and method name.
-        /// Then will write the funcPtr of method given by MethodName to buffer.
-        /// 
-        /// NOTE: sizeof(void*) depends on platform.
-        /// </summary>
-        /// <param name="pointerAndName">look like "0x0000FFFF|MethodName"</param>
-        /// <returns></returns>
-        public static int GetFunctionPointer(string pointerAndName)
-        {
-            var args = pointerAndName.Trim().Split('|');
-            if (args.Length > 2)
-                throw new ArgumentException(nameof(pointerAndName) + ":" + pointerAndName);
-            void** p = (void**)Convert.ToUInt64(args[0], 16);
-            p[0] = GetMethodPointer(args[1]);
-            return (int)p[0];
+            PhyConfiguration.SetValue(
+                Marshal.PtrToStringAnsi((IntPtr)key),
+                Marshal.PtrToStringAnsi((IntPtr)value)
+                );
         }
         #endregion
 
@@ -107,16 +59,33 @@ namespace GoldsrcPhysics.ExportAPIs
         #endregion
 
         #region PhysicsSystem
-
         /// <summary>
+        /// 
+        /// </summary>
+        private static bool _initialized = false;
+        /// <summary>
+        
         /// Init physics system
         /// if the struct layout is different from default layout, that will throw a fatal error.
         /// </summary>
         /// <param name="pStudioRenderer">the address of StudioModelRenderer's first field. (m_clTime)</param>
         /// <param name="lastFieldAddress">>the address of StudioModelRenderer's last field. (m_plighttransform)</param>
         /// <param name="engineStudioAPI">pIEngineStudio</param>
-        public static unsafe void InitSystem(void* pStudioRenderer, void* lastFieldAddress, void* engineStudioAPI)
+        public static unsafe void InitSystem([In]sbyte* modFolder,void* pEngineStudioAPI)
         {
+            InitGlobal();
+            PhyConfiguration.Init(Marshal.PtrToStringAnsi((IntPtr)modFolder));
+            SetEngineStudioAPI(pEngineStudioAPI);
+        }
+
+        /// <summary>
+        /// Can be only called once at a process
+        /// </summary>
+        private static void InitGlobal()
+        {
+            if (_initialized)
+                return;
+
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler((sender, e) =>
             {
                 var exception = e.ExceptionObject as Exception;
@@ -130,6 +99,7 @@ namespace GoldsrcPhysics.ExportAPIs
                     MessageBox.Show($"{exception.GetType().FullName}:\"{exception.Message}\"\n\n{exception.StackTrace}", "Unhandled Exception From GoldsrcPhysics", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
                 }
             });
+
             //Set native lib search path
             if (IntPtr.Size == 8)
             {
@@ -139,21 +109,31 @@ namespace GoldsrcPhysics.ExportAPIs
             {
                 Environment.SetEnvironmentVariable("PATH", Path.Combine(Directory.GetCurrentDirectory(), @"gsphysics\bin\x86"));
             }
+            // set managed lib search path
+            //Environment.SetEnvironmentVariable("PATH", Path.Combine(Directory.GetCurrentDirectory(), @"gsphysics\bin"));
+
+            _initialized = true;
+        }
+
+        private static unsafe void SetEngineStudioAPI(void* pEngineStudioAPI)
+        {
+            IEngineStudio.Init((EngineStudioAPI*)pEngineStudioAPI);
             //register goldsrc global variables
             //拿到金源引擎的API，使物理引擎可以访问缓存的模型信息、地图信息等
             BWorld.CreateInstance();
-            StudioRenderer.Init((IntPtr)pStudioRenderer);
+            StudioRenderer.Init();
             StudioRenderer.Drawer = BWorld.Instance.DebugDrawer;
-            IEngineStudio.Init((EngineStudioAPI*)engineStudioAPI);
             //Validation
             //if ((void*)(&StudioRenderer.NativePointer->m_plighttransform) != lastFieldAddress)
             //    throw new Exception("Studio model renderer is invalid.");
+
         }
+
         /// <summary>
         /// Load map geomitry collider. 
         /// </summary>
         /// <param name="mapName"></param>
-        public static void ChangeLevel(sbyte* mapName)
+        public static void ChangeLevel([In]sbyte* mapName)
         {
             for (int i = 0; i < _sceneStaticObjects.Count; i++)
             {
@@ -169,7 +149,8 @@ namespace GoldsrcPhysics.ExportAPIs
         /// </summary>
         public static void LevelReset()
         {
-
+            _bodyPicker.RemovePickingConstraint();
+            ClearRagdoll();
         }
 
         /// <summary>
@@ -182,13 +163,15 @@ namespace GoldsrcPhysics.ExportAPIs
                 return;
             //handling input
             //player's collider pos, bodypicker's pos
-            _localBodyPicker.Update();
+            
 
             //physics simulating
             if (delta < 0)
-                Time.SubStepCount += BWorld.Instance.StepSimulation(Time.DeltaTime);
+                throw new ArgumentException();
             else
                 Time.SubStepCount += BWorld.Instance.StepSimulation(delta);
+
+            Time.DeltaTime = delta;
 
             //drawing
             {//buffered draw
@@ -237,10 +220,11 @@ namespace GoldsrcPhysics.ExportAPIs
         {
             _ragdollManager.CreateRagdollController(entityId, index);
         }
-        public static unsafe void CreateRagdollControllerHeader(int entityId, Studio_h.studiohdr_t* hdr)
+        public static void CreateRagdollControllerModel(int entityId,model_t* model)
         {
-            _ragdollManager.CreateRagdollController(entityId, hdr);
+            _ragdollManager.CreateRagdollController(entityId, model);
         }
+
         public static void StartRagdoll(int entityId)
         {
             _ragdollManager.StartRagdoll(entityId);
@@ -278,6 +262,16 @@ namespace GoldsrcPhysics.ExportAPIs
         public static void HeadShootRagdoll(int entityId, Vector3* force)
         {
             _ragdollManager.HeadShootRagdoll(entityId, *force);
+        }
+
+        /// <summary>
+        /// Set ragdoll pose for given entity.
+        /// </summary>
+        /// <param name="entityId"></param>
+        /// <param name="pBoneWorldTransform"></param>
+        public static void SetPose(int entityId, float* pBoneWorldTransform)
+        {
+            _ragdollManager.SetPose(entityId, pBoneWorldTransform);
         }
         #endregion
 
@@ -343,20 +337,53 @@ namespace GoldsrcPhysics.ExportAPIs
         #endregion
 
         #region BodyPicker
-        public static void PickBody()
-        {
-            _localBodyPicker.PickBody();
-        }
+        
+        //public static void PickBody()
+        //{
+        //    _localBodyPicker.PickBody();
+        //}
 
-        public static void ReleaseBody()
-        {
-            _localBodyPicker.Release();
-        }
+        //public static void ReleaseBody()
+        //{
+        //    _localBodyPicker.Release();
+        //}
 
+        private static BodyPicker _bodyPicker = new BodyPicker();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="from">Eye pos or camera origin</param>
+        /// <param name="to">Camera origin + direction</param>
+        public static void PickBodyLocal(Vector3 from,Vector3 to)
+        {
+            _bodyPicker.PickBody(from, to);
+        }
+        /// <summary>
+        /// Release picked body
+        /// </summary>
+        public static void ReleaseBodyLocal()
+        {
+            _bodyPicker.RemovePickingConstraint();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="from">Eye pos or camera origin</param>
+        /// <param name="to">Camera origin + direction</param>
+        public static void MoveBodyLocal(Vector3 from, Vector3 to)
+        {
+            _bodyPicker.MovePickedBody(from, to);
+        }
         #endregion
 
         private static void LoadScene(string levelName)
         {
+            if (string.IsNullOrEmpty(levelName))
+            {
+                Debug.LogLine("Level name is null ot empty.");
+                return;
+            }
             var path = PhyConfiguration.GetValue("ModDir");
             var filePath = Path.Combine(path,levelName);
             Debug.LogLine("Load map {0}", filePath);

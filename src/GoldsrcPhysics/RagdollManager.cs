@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static GoldsrcPhysics.Goldsrc.Studio_h;
 
 namespace GoldsrcPhysics
 {
@@ -25,22 +26,9 @@ namespace GoldsrcPhysics
     }
     public class RagdollManager
     {
+        #region Useless
         List<IGoldsrcBehaviour> PhysicsServicesList { get; }
-        //access in O(1)
-        Ragdoll[] Ragdolls = new Ragdoll[4096];//entityId->BRagdoll
 
-        public void SetVelocity(int entityId,Vector3 v)
-        {
-            Ragdolls[entityId].SetVelocity(v);
-        }
-
-        //not null ragdoll index
-        List<int> Register = new List<int>();
-
-        public RagdollManager()
-        {
-            PhysicsServicesList = new List<IGoldsrcBehaviour>();
-        }
 
         public void Configure()
         {
@@ -53,6 +41,32 @@ namespace GoldsrcPhysics
                 PhysicsServicesList[i].Update();
             }
         }
+        public void ImpulseBone(int entityId, int boneId, Vector3 force)
+        {
+
+        }
+        public void HeadShootRagdoll(int entityId, Vector3 force)
+        {
+
+        }
+        #endregion
+        //access in O(1)
+        private readonly Ragdoll[] _ragdolls = new Ragdoll[4096];//entityId->BRagdoll
+
+        //not null ragdoll index
+        private List<int> _registered = new List<int>();
+
+        public void SetVelocity(int entityId,Vector3 v)
+        {
+            _ragdolls[entityId].SetVelocity(v);
+        }
+
+
+        public RagdollManager()
+        {
+            PhysicsServicesList = new List<IGoldsrcBehaviour>();
+        }
+
         /// <summary>
         /// precache model physics data
         /// </summary>
@@ -68,22 +82,30 @@ namespace GoldsrcPhysics
         /// <param name="modelName"></param>
         public void CreateRagdollController(int entityId, string modelName)
         {
-            modelName=Path.GetFileNameWithoutExtension(modelName);
-            Ragdolls[entityId] = RagdollBuilder.Build(modelName, RagdollBuilder.BuildOption.Default, RagdollBuilder.BuildOption.Bipped);
-            if(Ragdolls[entityId]!=null)
-                Register.Add(entityId);
+            _ragdolls[entityId] = RagdollBuilder.Build(modelName);
+            if(_ragdolls[entityId]!=null)
+            {
+                _ragdolls[entityId].EntityId = entityId;
+                _registered.Add(entityId);
+            }
         }
         public void CreateRagdollController(int entityId,int index)
         {
-            Ragdolls[entityId] = RagdollBuilder.Build(index);
-            if (Ragdolls[entityId] != null)
-                Register.Add(entityId);
+            _ragdolls[entityId] = RagdollBuilder.Build(index);
+            if (_ragdolls[entityId] != null)
+            {
+                _ragdolls[entityId].EntityId = entityId;
+                _registered.Add(entityId);
+            }
         }
-        public unsafe void CreateRagdollController(int entityId,Studio_h.studiohdr_t* hdr)
+        public unsafe void CreateRagdollController(int entityId,model_t* model)
         {
-            Ragdolls[entityId] = RagdollBuilder.Build(hdr);
-            if (Ragdolls[entityId] != null)
-                Register.Add(entityId);
+            _ragdolls[entityId] = RagdollBuilder.Build(model);
+            if (_ragdolls[entityId] != null)
+            {
+                _ragdolls[entityId].EntityId = entityId;
+                _registered.Add(entityId);
+            }
         }
         /// <summary>
         /// change owner when the corpse changed from player entity to just a model entity
@@ -92,12 +114,13 @@ namespace GoldsrcPhysics
         /// <param name="newEntity"></param>
         public void ChangeOwner(int oldEntity, int newEntity)
         {
-            if (Ragdolls[oldEntity] == null)
+            if (_ragdolls[oldEntity] == null)
                 return;
-            Ragdolls[newEntity] = Ragdolls[oldEntity];
-            Ragdolls[oldEntity] = null;
-            Register.Remove(oldEntity);
-            Register.Add(newEntity);
+            _ragdolls[newEntity] = _ragdolls[oldEntity];
+            _ragdolls[newEntity].EntityId = newEntity;
+            _ragdolls[oldEntity] = null;
+            _registered.Remove(oldEntity);
+            _registered.Add(newEntity);
         }
         /// <summary>
         /// enable ragdoll for specified entity
@@ -105,48 +128,46 @@ namespace GoldsrcPhysics
         /// <param name="entityId"></param>
         public void StartRagdoll(int entityId)
         {
-            Ragdolls[entityId]?.EnableRagdoll();
+            _ragdolls[entityId]?.Enable();
         }
         public void StopRagdoll(int entityId)
         {
-            Ragdolls[entityId]?.DisableRagdoll();
+            _ragdolls[entityId]?.Disable();
+        }
+
+        public unsafe void SetPose(int entityId, float* pBoneWorldTransform)
+        {
+            _ragdolls[entityId]?.SetPose(pBoneWorldTransform);
         }
         public void ClearRagdoll()
         {
-            foreach (var i in Register)
+            foreach (var i in _registered)
             {
-                Ragdolls[i].DisableRagdoll();
-                Ragdolls[i].Dispose();
-                Ragdolls[i] = null;
+                _ragdolls[i].Disable();
+                _ragdolls[i].Dispose();
+                _ragdolls[i] = null;
             }
-            Register.Clear();
+            _registered.Clear();
         }
         public void DisposeRagdollController(int entityId)
         {
-            var ragdoll = Ragdolls[entityId];
+            var ragdoll = _ragdolls[entityId];
             if (ragdoll == null)
                 return;
-            ragdoll.DisableRagdoll();
+            ragdoll.Disable();
             ragdoll.Dispose();
-            Ragdolls[entityId] = null;
-            Register.Remove(entityId);
+            _ragdolls[entityId] = null;
+            _registered.Remove(entityId);
         }
-        public void ImpulseBone(int entityId, int boneId, Vector3 force)
-        {
-
-        }
-        public void HeadShootRagdoll(int entityId, Vector3 force)
-        {
-
-        }
+       
         public void SetupBonesPhysically(int entityId)
         {
-            Ragdolls[entityId]?.SetupBones();
+            _ragdolls[entityId]?.SetupBones();
         }
     }
     public static class Time
     {
-        public unsafe static float DeltaTime { get =>(float)( StudioRenderer.NativePointer->m_clTime - StudioRenderer.NativePointer->m_clOldTime); }
+        public static float DeltaTime;
 
         public static int SubStepCount;
     }
