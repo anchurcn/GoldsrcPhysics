@@ -42,7 +42,7 @@ namespace GoldsrcPhysics
         public void SetFrame(int frame) { }
 
         public float Scale { get; set; } = 1f;
-        public int BoneCount { get => StudioRenderer.BoneCount; }
+        public int BoneCount { get; set; }
 
         public virtual Matrix34f GetLocalTransform(int boneId)
         {
@@ -71,7 +71,8 @@ namespace GoldsrcPhysics
         public TPoseBoneAccessor(studiohdr_t* studioHeader)
         {
             var bones = (mstudiobone_t*)((byte*)studioHeader + studioHeader->boneindex);
-            BoneTransform = new Matrix34f[StudioRenderer.BoneCount];
+            BoneTransform = new Matrix34f[studioHeader->numbones];
+            BoneCount = studioHeader->numbones;
 
             Matrix34f matrix = new Matrix34f();
             Quaternion q = new Quaternion();
@@ -84,7 +85,7 @@ namespace GoldsrcPhysics
             rebaseTransform.M[10] = 1;
             Matrix34f.ConcatTransforms(rebaseTransform, matrix, out BoneTransform[0]);
 
-            for (int i = 1; i < StudioRenderer.BoneCount; i++)
+            for (int i = 1; i < studioHeader->numbones; i++)
             {
                 Matrix34f.AngleQuaternion(&bones[i].value[3], out q);
                 Matrix34f.QuaternionMatrix(q, out matrix);

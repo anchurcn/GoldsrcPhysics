@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static GoldsrcPhysics.Goldsrc.goldsrctype;
 using static GoldsrcPhysics.Goldsrc.Studio_h;
 
 namespace GoldsrcPhysics.Goldsrc
@@ -102,35 +103,45 @@ namespace GoldsrcPhysics.Goldsrc
 		internal IntPtr StudioSetCullState;
 		internal IntPtr StudioRenderShadow;
 	}
-	internal struct model_t
+	public struct model_t
 	{
 		internal unsafe fixed sbyte name[64];
 	}
 	// Retrieve pointer to studio model data block from a model (model_t* mod)
-	[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	internal unsafe delegate studiohdr_t* Mod_ExtradataDelegate (model_t* mod );
-
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	internal unsafe delegate model_t* GetModelByIndexDelegate(int index);
-
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	internal unsafe delegate model_t* Mod_ForNameDelegate(sbyte* name, bool crash_if_missing);
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+	internal unsafe delegate float* StudioGetBoneTransformDelegate();
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+	internal unsafe delegate void* GetCurrentEntityDelegate();
 
 
 	internal static class IEngineStudio
 	{
 		// Retrieve pointer to studio model data block from a model (model_t* mod)
-		internal static Mod_ExtradataDelegate Mod_Extradata;
+		internal static Mod_ExtradataDelegate Mod_Extradata { get; set; }
 
 		// Retrieve indexed model from client side model precache list
-		internal static GetModelByIndexDelegate GetModelByIndex;
+		internal static GetModelByIndexDelegate GetModelByIndex { get; set; }
 
 		// Retrieve model pointer for the named model
-		internal static Mod_ForNameDelegate Mod_ForName;
+		internal static Mod_ForNameDelegate Mod_ForName { get; set; }
+
+		internal static StudioGetBoneTransformDelegate StudioGetBoneTransform { get; set; }
+
+		internal static GetCurrentEntityDelegate GetCurrentEntity { get; set; }
 
 		internal unsafe static void Init(EngineStudioAPI* pEngineStudio)
 		{
 			Mod_Extradata = Marshal.GetDelegateForFunctionPointer<Mod_ExtradataDelegate>(pEngineStudio->Mod_Extradata);
 			GetModelByIndex = Marshal.GetDelegateForFunctionPointer<GetModelByIndexDelegate>(pEngineStudio->GetModelByIndex);
 			Mod_ForName = Marshal.GetDelegateForFunctionPointer<Mod_ForNameDelegate>(pEngineStudio->Mod_ForName);
+			GetCurrentEntity = Marshal.GetDelegateForFunctionPointer<GetCurrentEntityDelegate>(pEngineStudio->GetCurrentEntity);
+			StudioGetBoneTransform = Marshal.GetDelegateForFunctionPointer<StudioGetBoneTransformDelegate>(pEngineStudio->StudioGetBoneTransform);
 		}
 	}
 }

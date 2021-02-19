@@ -35,12 +35,13 @@ namespace GoldsrcPhysics.Goldsrc
     public unsafe class StudioRenderer
     {
         public static StudioModelRenderer* NativePointer;
+        public static cl_entity_t* CurrentEntity => (cl_entity_t*)IEngineStudio.GetCurrentEntity();
         /// <summary>
         /// read or the bone transform that scaled, and write the bone transform that scaled for you
         /// </summary>
         public static StudioTransforms ScaledBoneTransform;
 
-        public static studiohdr_t* StudioHeader => NativePointer->m_pStudioHeader;
+        public static studiohdr_t* StudioHeader => IEngineStudio.Mod_Extradata(CurrentEntity->model);
         public static mstudiobone_t* Bones
         {
             get
@@ -51,13 +52,12 @@ namespace GoldsrcPhysics.Goldsrc
 
         public static int BoneCount => StudioHeader->numbones;
 
-        public static int EntityId { get => NativePointer->m_pCurrentEntity->index; }
+        public static int EntityId { get => CurrentEntity->index; }
 
-        public static void Init(IntPtr pointerToStudioRenderer)
+        public static void Init()
         {
-            void* p = pointerToStudioRenderer.ToPointer();
-            NativePointer = (StudioModelRenderer*)p;
-            ScaledBoneTransform = new StudioTransforms(((StudioModelRenderer*)p)->m_pbonetransform);
+            NativePointer = (StudioModelRenderer*)0;
+            ScaledBoneTransform = new StudioTransforms(IEngineStudio.StudioGetBoneTransform());
         }
         public static DebugDraw Drawer;
         public static void DrawCurrentSkeleton()
