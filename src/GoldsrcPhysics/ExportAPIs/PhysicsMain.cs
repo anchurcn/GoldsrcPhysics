@@ -163,12 +163,12 @@ namespace GoldsrcPhysics.ExportAPIs
                 return;
             //handling input
             //player's collider pos, bodypicker's pos
-            
+
 
             //physics simulating
             if (delta < 0)
-                throw new ArgumentException();
-            else
+                return;
+            
                 Time.SubStepCount += BWorld.Instance.StepSimulation(delta);
 
             Time.DeltaTime = delta;
