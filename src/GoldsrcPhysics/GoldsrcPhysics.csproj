@@ -170,7 +170,6 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent># copy GoldsrcPhysics.dll to game dir
-#copy "$(TargetPath)" "path\to\your\game\gsphysics\bin"
-copy "$(TargetPath)" "E:\sjz\xash3d_fwgs_win32_0.19.2\gsphysics\bin"</PostBuildEvent>
+#copy "$(TargetPath)" "path\to\your\game\gsphysics\bin"</PostBuildEvent>
   </PropertyGroup>
 </Project>
