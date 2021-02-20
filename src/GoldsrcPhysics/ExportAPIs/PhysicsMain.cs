@@ -135,13 +135,19 @@ namespace GoldsrcPhysics.ExportAPIs
         /// <param name="mapName"></param>
         public static void ChangeLevel([In]sbyte* mapName)
         {
+            string levelName = Marshal.PtrToStringAnsi((IntPtr)mapName);
+            if (string.IsNullOrEmpty(levelName))
+            {
+                Debug.LogLine("Level name is null ot empty.");
+                return;
+            }
             for (int i = 0; i < _sceneStaticObjects.Count; i++)
             {
                 BWorld.Instance.RemoveRigidBody(_sceneStaticObjects[i]);
                 _sceneStaticObjects[i].Dispose();
             }
             _sceneStaticObjects.Clear();
-            LoadScene(Marshal.PtrToStringAnsi((IntPtr)mapName));
+            LoadScene(levelName);
         }
         /// <summary>
         /// 地图不变，内容重置，清理在游戏中动态创建的各种CollisionObjects
@@ -379,19 +385,32 @@ namespace GoldsrcPhysics.ExportAPIs
 
         private static void LoadScene(string levelName)
         {
-            if (string.IsNullOrEmpty(levelName))
-            {
-                Debug.LogLine("Level name is null ot empty.");
-                return;
-            }
             var path = PhyConfiguration.GetValue("ModDir");
-            var filePath = Path.Combine(path,levelName);
-            Debug.LogLine("Load map {0}", filePath);
+            string[] searchPath =
+            {
+                "",
+                "downloaded",
+                string.Format(@"../{0}_schinese",path),
+                string.Format(@"../{0}_schinese/downloaded",path)
+            };
+            string filePath = null;
+            foreach (var i in searchPath)
+            {
+                filePath = Path.Combine(path, i, levelName);
+                if(File.Exists(filePath))
+                {
+                    Debug.LogLine("Load map {0}", filePath);
 
-            var bspLoader = new BspLoader(filePath);
-            _sceneStaticObjects.Add(BulletHelper.CreateStaticBody(Matrix.Translation(0, 0, 0),
-                new BvhTriangleMeshShape(bspLoader.StaticGeometry, true),
-                BWorld.Instance));
+                    var bspLoader = new BspLoader(filePath);
+                    _sceneStaticObjects.Add(BulletHelper.CreateStaticBody(Matrix.Translation(0, 0, 0),
+                        new BvhTriangleMeshShape(bspLoader.StaticGeometry, true),
+                        BWorld.Instance));
+                    return;
+                }
+            }
+            throw new FileNotFoundException(string.Format("Cannot found map file {0} on these paths: {1}",
+                levelName,
+                "\n" + string.Join("\n", searchPath)));
         }
     }
 }
