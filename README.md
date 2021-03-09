@@ -64,7 +64,7 @@ You will see the `\bin` folder on your repo root.
 1. Open project properties window.
  - edit the post build event on build event pannel for copying GoldsrcPhysics.dll to `"path\to\your\game\gsphysics\bin"`
  - select debug pannel, edit the path **Launch external program** to your game executable file. Usually named hl.exe or cstrick.exe.
- - maybe need some program arguments to specify your mod.
+ - maybe need some program arguments to specify your mod. eg `-dev -debug -console`
  1. Press F5, you'll see the game launched by VS2019.
  1. If you set a break point, VS2019 will tell you the break point is available.
 
