@@ -205,13 +205,13 @@ namespace GoldsrcPhysics
             var headWidth = bodyWidth / 2.5f;//躯干是头的2.5倍
             var headRaito = 5.85f / 8.1f;//头宽高比
             var headHeight = headWidth / headRaito;
-            var headShape = new CapsuleShape(headWidth / 2, headHeight - headWidth);
+            var headShape = new SphereShape(headHeight / 2);
             var rigidOrigin = head;
             rigidOrigin.Z += headHeight / 2;
             rigidOrigin.X += headWidth / 4.6f;
             var headLookAt = head;
             headLookAt.X += headWidth / 4.6f;
-            var headRigid = Matrix.Translation(rigidOrigin).LookAt(in headLookAt, in Vector3.UnitY);
+            var headRigid = Matrix.Translation(rigidOrigin);
             var headBone = accessor.GetWorldTransform(info.Head);
             ragdoll.RigidBodies[(int)BodyPart.Head] = BulletHelper.CreateBoneRigidbody(1, ref headBone, ref headRigid, headShape);
             ragdoll.RigidBodies[(int)BodyPart.Head].UserIndex = info.Head;
@@ -292,7 +292,7 @@ namespace GoldsrcPhysics
                 var localPelvis = jointTransform * bodyPelvis.WorldTransform.GetInverse();
 
                 var joint = new ConeTwistConstraint(bodyLeftArm, bodyPelvis, localInLeftArm, localPelvis);
-                joint.SetLimit(3.1415926f * 0.5f, 3.1415926f * 0.5f, 0);
+                joint.SetLimit(3.1415926f * 0.6f, 3.1415926f * 0.6f, 0);
                 ragdoll.Constraints[1] = joint;
             }
             // right arm constraint
@@ -308,11 +308,41 @@ namespace GoldsrcPhysics
                 var localPelvis = jointTransform * bodyPelvis.WorldTransform.GetInverse();
 
                 var joint = new ConeTwistConstraint(bodyRightArm, bodyPelvis, localInRightArm, localPelvis);
-                joint.SetLimit(3.1415926f * 0.5f, 3.1415926f * 0.5f, 0);
+                joint.SetLimit(3.1415926f * 0.6f, 3.1415926f * 0.6f, 0);
                 ragdoll.Constraints[2] = joint;
             }
-            ragdoll.Constraints[3] = CreateJoint(bodys[(int)BodyPart.LeftElbow], bodys[(int)BodyPart.LeftArm], lElbow);
-            ragdoll.Constraints[4] = CreateJoint(bodys[(int)BodyPart.RightElbow], bodys[(int)BodyPart.RightArm], rElbow);
+            {// Left elbow
+                //ragdoll.Constraints[3] = CreateJoint(bodys[(int)BodyPart.LeftElbow], bodys[(int)BodyPart.LeftArm], lElbow);
+
+                var bodyArm = bodys[(int)BodyPart.LeftArm];
+                var bodyElbow = bodys[(int)BodyPart.LeftElbow];
+
+
+                var jointTrans = Matrix.Translation(lElbow).LookAt(lElbow + new Vector3(0, 0, -1), Vector3.UnitZ);
+                // joint's local transform
+                var localInArm = jointTrans * bodyArm.WorldTransform.GetInverse();
+                var localInElbow = jointTrans * bodyElbow.WorldTransform.GetInverse();
+                var joint = new HingeConstraint(bodyArm, bodyElbow, localInArm, localInElbow);
+                joint.SetAxis(Vector3.UnitZ);
+                joint.SetLimit(-(float)Math.PI * 0.7f, 1);
+                ragdoll.Constraints[3] = joint;
+            }
+            {// right elbow
+                //ragdoll.Constraints[4] = CreateJoint(bodys[(int)BodyPart.RightElbow], bodys[(int)BodyPart.RightArm], rElbow);
+
+                var bodyArm = bodys[(int)BodyPart.RightArm];
+                var bodyElbow = bodys[(int)BodyPart.RightElbow];
+
+
+                var jointTrans = Matrix.Translation(rElbow).LookAt(rElbow + new Vector3(0, 0, -1), Vector3.UnitZ);
+                // joint's local transform
+                var localInArm = jointTrans * bodyArm.WorldTransform.GetInverse();
+                var localInElbow = jointTrans * bodyElbow.WorldTransform.GetInverse();
+                var joint = new HingeConstraint(bodyArm, bodyElbow, localInArm, localInElbow);
+                joint.SetAxis(Vector3.UnitZ);
+                joint.SetLimit(-(float)Math.PI * 0.7f, 1);
+                ragdoll.Constraints[4] = joint;
+            }
             {
                 //ragdoll.Constraints[5] = CreateJoint(bodys[(int)BodyPart.LeftHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.LeftHip));
                 var bodyHipL = bodys[(int)BodyPart.LeftHip];
@@ -331,7 +361,7 @@ namespace GoldsrcPhysics
                 var localHipL = jointTrans * bodyHipL.WorldTransform.GetInverse();
 
                 ragdoll.Constraints[5] = new ConeTwistConstraint(bodyHipL, bodyPelvis, localHipL, localPelvis);
-                (ragdoll.Constraints[5] as ConeTwistConstraint).SetLimit((float)Math.PI / 6, (float)Math.PI, (float)Math.PI / 10);
+                (ragdoll.Constraints[5] as ConeTwistConstraint).SetLimit((float)Math.PI / 4, (float)Math.PI/4, (float)Math.PI / 12);
             }
             {
                 //ragdoll.Constraints[6] = CreateJoint(bodys[(int)BodyPart.RightHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.RightHip));
@@ -351,7 +381,7 @@ namespace GoldsrcPhysics
                 var localHipR = jointTrans * bodyHipR.WorldTransform.GetInverse();
 
                 ragdoll.Constraints[6] = new ConeTwistConstraint(bodyHipR, bodyPelvis, localHipR, localPelvis);
-                (ragdoll.Constraints[6] as ConeTwistConstraint).SetLimit((float)Math.PI /6, (float)Math.PI , (float)Math.PI / 10);
+                (ragdoll.Constraints[6] as ConeTwistConstraint).SetLimit((float)Math.PI /4, (float)Math.PI /4, (float)Math.PI / 12);
             }
             {// left knee joint
                 {// p2p joint
@@ -410,7 +440,7 @@ namespace GoldsrcPhysics
                 i.SetDamping(0.05f, 0.85f);
                 i.DeactivationTime = 0.8f;
                 i.SetSleepingThresholds(1.6f, 2.5f);
-                i.Friction = 1;//v1.0 is 2
+                i.Friction = 2.2f;//v1.0 is 2
             }
             // damping, friction and restitution document forum
             //https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=8100

@@ -138,8 +138,7 @@ namespace GoldsrcPhysics.ExportAPIs
             string levelName = Marshal.PtrToStringAnsi((IntPtr)mapName);
             if (string.IsNullOrEmpty(levelName))
             {
-                Debug.LogLine("Level name is null ot empty.");
-                return;
+                throw new ArgumentException($"{nameof(mapName)} is null or empty.");
             }
             for (int i = 0; i < _sceneStaticObjects.Count; i++)
             {
