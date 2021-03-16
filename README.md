@@ -43,7 +43,10 @@ void OnPlayerRespawn(int entityId){
 * Add some data to describe the bones of each part of your player model.
 * Have fun!
 
-[Learn more](https://blog.csdn.net/u012779385/article/details/108901621)
+[Learn more in the detailed tutorial](https://github.com/anchurcn/GoldsrcPhysicsHome/tree/main/docs)
+
+## Demo
+[HL1RagdollMod](https://github.com/anchurcn/HL1RagdollMod)
 
 # Building from source
 For developers who want to contribute to this project.
