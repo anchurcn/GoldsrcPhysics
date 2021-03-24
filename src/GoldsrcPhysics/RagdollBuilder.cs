@@ -6,8 +6,12 @@ using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization.Json;
+using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
 using static GoldsrcPhysics.Goldsrc.Studio_h;
 using static GoldsrcPhysics.Utils.BulletHelper;
@@ -75,24 +79,23 @@ namespace GoldsrcPhysics
         }
         public unsafe static Ragdoll Build(int modelIndex)
         {
-            var mod=IEngineStudio.GetModelByIndex(modelIndex);
+            var mod = IEngineStudio.GetModelByIndex(modelIndex);
             string name = Marshal.PtrToStringAnsi((IntPtr)mod->name);
             return BuildBipped(IEngineStudio.Mod_Extradata(mod), BippedBone.Get(name), BoneAccessor.Get(name));
         }
         public unsafe static Ragdoll Build(model_t* model)
         {
-            string name = Marshal.PtrToStringAnsi((IntPtr)model->name);
-            name = Path.GetFileNameWithoutExtension(name);
-            return BuildBipped(IEngineStudio.Mod_Extradata(model), BippedBone.Get(name), BoneAccessor.Get(IEngineStudio.Mod_Extradata(model)));
+
+            return BuildBipped(IEngineStudio.Mod_Extradata(model), BippedBoneMgr.GetBippedBone(model), BoneAccessor.Get(IEngineStudio.Mod_Extradata(model)));
         }
-        [Obsolete("No enough info for creating ragdoll from StudioHeader.",true)]
+        [Obsolete("No enough info for creating ragdoll from StudioHeader.", true)]
         public unsafe static Ragdoll Build(Studio_h.studiohdr_t* hdr)
         {
             // The name from studioHeader is a internal name, change it in your modeName.qc file. 
             // That's different from your model file name.
             string name = Marshal.PtrToStringAnsi((IntPtr)hdr->name);
             name = Path.GetFileNameWithoutExtension(name);
-            return BuildBipped(hdr,BippedBone.Get(name), BoneAccessor.Get(hdr));
+            return BuildBipped(hdr, BippedBone.Get(name), BoneAccessor.Get(hdr));
         }
 
         /// <summary>
@@ -150,7 +153,7 @@ namespace GoldsrcPhysics
         //		   /			   /
         //		 3 ------------- 0
         //           width/length
-        private static unsafe Ragdoll BuildBipped(studiohdr_t* pStudioHeader, BippedBone info,BoneAccessor accessor)
+        private static unsafe Ragdoll BuildBipped(studiohdr_t* pStudioHeader, BippedBone info, BoneAccessor accessor)
         {
             Debug.LogLine();
             Debug.LogLine("=========================================");
@@ -219,12 +222,12 @@ namespace GoldsrcPhysics
             //lArm
             var lArmBone = accessor.GetWorldTransform(info.LeftArm);
             var lElbow = accessor.Pos(info.LeftElbow);
-            ragdoll.RigidBodies[(int)BodyPart.LeftArm] = CreateLimb(ref lArmBone, lElbow, headWidth*0.55f);
+            ragdoll.RigidBodies[(int)BodyPart.LeftArm] = CreateLimb(ref lArmBone, lElbow, headWidth * 0.55f);
             ragdoll.RigidBodies[(int)BodyPart.LeftArm].UserIndex = info.LeftArm;
             //rArm
             var rArmBone = accessor.GetWorldTransform(info.RightArm);
             var rElbow = accessor.Pos(info.RightElbow);
-            ragdoll.RigidBodies[(int)BodyPart.RightArm] = CreateLimb(ref rArmBone, rElbow, headWidth*0.55f);
+            ragdoll.RigidBodies[(int)BodyPart.RightArm] = CreateLimb(ref rArmBone, rElbow, headWidth * 0.55f);
             ragdoll.RigidBodies[(int)BodyPart.RightArm].UserIndex = info.RightArm;
             //lElbow
             var lElbowBone = accessor.GetWorldTransform(info.LeftElbow);
@@ -239,12 +242,12 @@ namespace GoldsrcPhysics
             //lHip
             var lHipBone = accessor.GetWorldTransform(info.LeftHip);
             var lKnee = accessor.Pos(info.LeftKnee);
-            ragdoll.RigidBodies[(int)BodyPart.LeftHip] = CreateLimb(ref lHipBone, lKnee, headWidth*0.55f);
+            ragdoll.RigidBodies[(int)BodyPart.LeftHip] = CreateLimb(ref lHipBone, lKnee, headWidth * 0.55f);
             ragdoll.RigidBodies[(int)BodyPart.LeftHip].UserIndex = info.LeftHip;
             //rHip
             var rHipBone = accessor.GetWorldTransform(info.RightHip);
             var rKnee = accessor.Pos(info.RightKnee);
-            ragdoll.RigidBodies[(int)BodyPart.RightHip] = CreateLimb(ref rHipBone, rKnee, headWidth*0.55f);
+            ragdoll.RigidBodies[(int)BodyPart.RightHip] = CreateLimb(ref rHipBone, rKnee, headWidth * 0.55f);
             ragdoll.RigidBodies[(int)BodyPart.RightHip].UserIndex = info.RightHip;
             //lKnee
             var lKneeBone = accessor.GetWorldTransform(info.LeftKnee);
@@ -277,7 +280,7 @@ namespace GoldsrcPhysics
                 var localHead = jointTrans * bodyHead.WorldTransform.GetInverse();
                 var localPelvis = jointTrans * bodyPelvis.WorldTransform.GetInverse();
                 ragdoll.Constraints[0] = new ConeTwistConstraint(bodyHead, bodyPelvis, localHead, localPelvis);
-                (ragdoll.Constraints[0] as ConeTwistConstraint).SetLimit((float)Math.PI / 6.5f, (float)Math.PI / 6.5f, (float)Math.PI *0.3333333f);
+                (ragdoll.Constraints[0] as ConeTwistConstraint).SetLimit((float)Math.PI / 6.5f, (float)Math.PI / 6.5f, (float)Math.PI * 0.3333333f);
             }
             // left arm constraint
             {
@@ -349,19 +352,19 @@ namespace GoldsrcPhysics
                 var bodyPelvis = bodys[(int)BodyPart.Pelvis];
                 var leglen = (accessor.Pos(info.LeftHip) - lKnee).Length;
                 var x = (float)Math.Cos(Math.PI / 6) * leglen;
-                var z= (float)Math.Sin(Math.PI / 6) * leglen;
+                var z = (float)Math.Sin(Math.PI / 6) * leglen;
                 var posA = accessor.Pos(info.LeftHip);
                 posA.Z += z;
                 posA.X += x;
                 var posB = lKnee;
                 var posCenter = (posA + posB) / 2;
 
-                var jointTrans = Matrix.Translation(accessor.Pos(info.LeftHip)).LookAt(posCenter,Vector3.UnitX);
+                var jointTrans = Matrix.Translation(accessor.Pos(info.LeftHip)).LookAt(posCenter, Vector3.UnitX);
                 var localPelvis = jointTrans * bodyPelvis.WorldTransform.GetInverse();
                 var localHipL = jointTrans * bodyHipL.WorldTransform.GetInverse();
 
                 ragdoll.Constraints[5] = new ConeTwistConstraint(bodyHipL, bodyPelvis, localHipL, localPelvis);
-                (ragdoll.Constraints[5] as ConeTwistConstraint).SetLimit((float)Math.PI / 4, (float)Math.PI/4, (float)Math.PI / 12);
+                (ragdoll.Constraints[5] as ConeTwistConstraint).SetLimit((float)Math.PI / 4, (float)Math.PI / 4, (float)Math.PI / 12);
             }
             {
                 //ragdoll.Constraints[6] = CreateJoint(bodys[(int)BodyPart.RightHip], bodys[(int)BodyPart.Pelvis], accessor.Pos(info.RightHip));
@@ -381,7 +384,7 @@ namespace GoldsrcPhysics
                 var localHipR = jointTrans * bodyHipR.WorldTransform.GetInverse();
 
                 ragdoll.Constraints[6] = new ConeTwistConstraint(bodyHipR, bodyPelvis, localHipR, localPelvis);
-                (ragdoll.Constraints[6] as ConeTwistConstraint).SetLimit((float)Math.PI /4, (float)Math.PI /4, (float)Math.PI / 12);
+                (ragdoll.Constraints[6] as ConeTwistConstraint).SetLimit((float)Math.PI / 4, (float)Math.PI / 4, (float)Math.PI / 12);
             }
             {// left knee joint
                 {// p2p joint
@@ -397,7 +400,7 @@ namespace GoldsrcPhysics
                     var localInHipL = jointTrans * bodyHipL.WorldTransform.GetInverse();
                     var localInKneeL = jointTrans * bodyKneeL.WorldTransform.GetInverse();
                     ragdoll.Constraints[7] = new HingeConstraint(bodyHipL, bodyKneeL, localInHipL, localInKneeL);
-                    (ragdoll.Constraints[7] as HingeConstraint).SetLimit(-(float)Math.PI *0.7f, 0);
+                    (ragdoll.Constraints[7] as HingeConstraint).SetLimit(-(float)Math.PI * 0.7f, 0);
                 }
                 {// hinge joint 2
                     //var bodyHipL = bodys[(int)BodyPart.LeftHip];
@@ -460,15 +463,18 @@ namespace GoldsrcPhysics
         static Dictionary<string, BippedBone> KeyValues;
         public static BippedBone Get(string modelName)
         {
-            return KeyValues[modelName];
+            BippedBone result = null;
+            if (!KeyValues.TryGetValue(modelName, out result))
+                result = null;
+            return result;
         }
         static BippedBone()
         {
             KeyValues = new Dictionary<string, BippedBone>();
             DataContractJsonSerializer serializer = new DataContractJsonSerializer(KeyValues.GetType());
-            using (var stream = File.OpenRead(Path.Combine(PhyConfiguration.GetValue("ModDir"),@"phydata\RagdollBone.json")))
+            using (var stream = File.OpenRead(Path.Combine(PhyConfiguration.GetValue("ModDir"), @"phydata\RagdollBone.json")))
             {
-                KeyValues =(Dictionary<string,BippedBone>)serializer.ReadObject(stream);
+                KeyValues = (Dictionary<string, BippedBone>)serializer.ReadObject(stream);
             }
         }
         public int Head;
@@ -486,5 +492,102 @@ namespace GoldsrcPhysics
         public int RightHip;
         public int RightKnee;
         public int RightFoot;
+    }
+
+    public unsafe static class BippedBoneMgr
+    {
+        private static Dictionary<long, BippedBone> _cache = new Dictionary<long, BippedBone>(512);
+        public static BippedBone GetBippedBone(model_t* pModel)
+        {
+            BippedBone bippedBone = null;
+            long key = (long)pModel;
+            // cache missing
+            if (!_cache.TryGetValue(key, out bippedBone))
+            {
+                // calc via naming convension
+                bippedBone = BippedBoneNaming.Get(pModel);
+                // special treatment
+                if (bippedBone == null)
+                {
+                    string name = Marshal.PtrToStringAnsi((IntPtr)pModel->name);
+                    name = Path.GetFileNameWithoutExtension(name);
+                    // null or not null
+                    bippedBone = BippedBone.Get(name);
+                }
+                _cache.Add(key, bippedBone);
+            }
+            return bippedBone;
+        }
+    }
+    public unsafe class BippedBoneNaming
+    {
+        static List<BippedBoneNaming> _boneNamings = new List<BippedBoneNaming>();
+        static FieldInfo[] _namingFields = typeof(BippedBoneNaming).GetFields();
+        static Type _bippedBoneType = typeof(BippedBone);
+        public static BippedBone Get(model_t* pModel)
+        {
+            var pStudioModel = IEngineStudio.Mod_Extradata(pModel);
+            BippedBone result = new BippedBone();
+
+
+            // 如果哪一套谷歌名能拿到所有索引，
+            if (_boneNamings.Any(
+                x => _namingFields.All(
+                    field =>
+                    {
+                        var index = GetBoneIndex((string)field.GetValue(x), pStudioModel);
+                        _bippedBoneType.GetField(field.Name).SetValue(result, index);
+                        return index > 0;
+                    })
+                ))
+                return result;
+            else
+                return null;
+
+
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="boneName"></param>
+        /// <param name="pStudioModel"></param>
+        /// <returns>Bone index for given name. -1 represents not found.</returns>
+        private static int GetBoneIndex(string boneName, studiohdr_t* pStudioModel)
+        {
+            var bones = (mstudiobone_t*)((byte*)pStudioModel + pStudioModel->boneindex);
+            for (int i = 0; i < pStudioModel->numbones; i++)
+            {
+                var name = Marshal.PtrToStringAnsi((IntPtr)bones[i].name);
+                if (boneName == name)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        static BippedBoneNaming()
+        {
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(_boneNamings.GetType());
+            using (var stream = File.OpenRead(@"gsphysics\RagdollBoneNaming.json"))
+            {
+                _boneNamings = (List<BippedBoneNaming>)serializer.ReadObject(stream);
+            }
+        }
+
+        public string Head;
+        public string Spine;
+        public string Pelvis;
+        public string LeftArm;
+        public string LeftElbow;
+        public string LeftHand;
+        public string LeftHip;
+        public string LeftKnee;
+        public string LeftFoot;
+        public string RightArm;
+        public string RightElbow;
+        public string RightHand;
+        public string RightHip;
+        public string RightKnee;
+        public string RightFoot;
     }
 }
