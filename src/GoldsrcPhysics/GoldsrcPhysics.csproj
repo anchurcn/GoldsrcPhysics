@@ -119,6 +119,7 @@
     <Compile Include="Goldsrc\Bsp\Plane.cs" />
     <Compile Include="Goldsrc\Bsp\TextureInfo.cs" />
     <Compile Include="Goldsrc\Bsp\Version.cs" />
+    <Compile Include="KinematicManager.cs" />
     <Compile Include="MogreDebugDraw.cs" />
     <Compile Include="PickerManager.cs" />
     <Compile Include="Goldsrc\EngineStudioAPI.cs" />
