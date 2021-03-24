@@ -1,10 +1,8 @@
 ﻿using BulletSharp;
 using BulletSharp.Math;
+using GoldsrcPhysics.Goldsrc;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using static GoldsrcPhysics.Goldsrc.goldsrctype;
 
 namespace GoldsrcPhysics.Utils
 {
@@ -56,7 +54,7 @@ namespace GoldsrcPhysics.Utils
         {
             Rand = new Random();
         }
-        public static int RandomInt(int min,int max)
+        public static int RandomInt(int min, int max)
         {
             return Rand.Next(min, max);
         }
@@ -87,6 +85,29 @@ namespace GoldsrcPhysics.Utils
 
             return body;
         }
+        public unsafe static RigidBody CreateBodyForEntity(float mass, cl_entity_t* pEntity, CollisionShape shape, DynamicsWorld world)
+        {
+            // Using a motion state is recommended,
+            // it holds the offset between bone and rigidbody
+            var myMotionState = new EntityMotionState(pEntity);
+
+            Vector3 localInertia = shape.CalculateLocalInertia(mass);
+
+            RigidBody body;
+            using (var rbInfo = new RigidBodyConstructionInfo(mass, myMotionState, shape, localInertia))
+            {
+                body = new RigidBody(rbInfo);
+            }
+
+            // A dynamic body with zero mass is kinematics
+            if (mass == 0)
+            {
+                body.CollisionFlags = body.CollisionFlags | CollisionFlags.KinematicObject;
+                body.ActivationState = ActivationState.DisableDeactivation;
+            }
+
+            return body;
+        }
 
         public static RigidBody CreateStaticBody(Matrix startTransform, CollisionShape shape, DynamicsWorld world)
         {
@@ -107,6 +128,40 @@ namespace GoldsrcPhysics.Utils
             }
 
             return body;
+        }
+    }
+    public unsafe class EntityMotionState : MotionState
+    {
+        private cl_entity_t* _pEntity;
+
+        public EntityMotionState(cl_entity_t* pEntity)
+        {
+            _pEntity = pEntity;
+        }
+
+        /// <summary>
+        /// Bullet uses this method to read entity transform.
+        /// </summary>
+        /// <param name="worldTrans"></param>
+        public override void GetWorldTransform(out Matrix worldTrans)
+        {
+            Vector3 origin = _pEntity->origin * GBConstant.G2BScale;
+            Quaternion orientation;
+            Matrix34f.AngleQuaternion((float*)&_pEntity->angles, out orientation);
+            Matrix34f matrix = new Matrix34f();
+            Matrix34f.QuaternionMatrix(orientation, out matrix);
+            matrix.Origin = origin;
+            worldTrans = matrix;
+        }
+
+        /// <summary>
+        /// Bullet uses this method to write transform to entity.
+        /// </summary>
+        /// <param name="worldTrans"></param>
+        public override void SetWorldTransform(ref Matrix worldTrans)
+        {
+            _pEntity->origin = worldTrans.Origin;
+            // TODO: entity.angle
         }
     }
 }

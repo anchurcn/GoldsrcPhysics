@@ -2,21 +2,18 @@
 using BulletSharp.Math;
 using GoldsrcPhysics.Forms;
 using GoldsrcPhysics.Goldsrc;
-using GoldsrcPhysics.Goldsrc.Bsp;
 using GoldsrcPhysics.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using static GoldsrcPhysics.Goldsrc.goldsrctype;
 
 namespace GoldsrcPhysics.ExportAPIs
 {
-    
+
 
     /// <summary>
     /// Provide the interface for goldsrc that can access to.
@@ -38,7 +35,7 @@ namespace GoldsrcPhysics.ExportAPIs
         #endregion
 
         #region Config
-        public static void Set([In]sbyte* key,[In]sbyte* value)
+        public static void Set([In]sbyte* key, [In]sbyte* value)
         {
             PhyConfiguration.SetValue(
                 Marshal.PtrToStringAnsi((IntPtr)key),
@@ -64,14 +61,14 @@ namespace GoldsrcPhysics.ExportAPIs
         /// </summary>
         private static bool _initialized = false;
         /// <summary>
-        
+
         /// Init physics system
         /// if the struct layout is different from default layout, that will throw a fatal error.
         /// </summary>
         /// <param name="pStudioRenderer">the address of StudioModelRenderer's first field. (m_clTime)</param>
         /// <param name="lastFieldAddress">>the address of StudioModelRenderer's last field. (m_plighttransform)</param>
         /// <param name="engineStudioAPI">pIEngineStudio</param>
-        public static unsafe void InitSystem([In]sbyte* modFolder,void* pEngineStudioAPI)
+        public static unsafe void InitSystem([In]sbyte* modFolder, void* pEngineStudioAPI)
         {
             InitGlobal();
             PhyConfiguration.Init(Marshal.PtrToStringAnsi((IntPtr)modFolder));
@@ -169,15 +166,19 @@ namespace GoldsrcPhysics.ExportAPIs
             //handling input
             //player's collider pos, bodypicker's pos
 
+            #region BeforeSimulation
+            _kinematicsManager.BeforeSimulation();
+            #endregion
 
             //physics simulating
             if (delta < 0)
                 return;
-            
-                Time.SubStepCount += BWorld.Instance.StepSimulation(delta);
+
+            Time.SubStepCount += BWorld.Instance.StepSimulation(delta);
 
             Time.DeltaTime = delta;
 
+            _kinematicsManager.AfterSimulation();
             //drawing
             {//buffered draw
                 //BWorld.Instance.DebugDrawWorld();
@@ -225,7 +226,7 @@ namespace GoldsrcPhysics.ExportAPIs
         {
             _ragdollManager.CreateRagdollController(entityId, index);
         }
-        public static void CreateRagdollControllerModel(int entityId,model_t* model)
+        public static void CreateRagdollControllerModel(int entityId, model_t* model)
         {
             _ragdollManager.CreateRagdollController(entityId, model);
         }
@@ -296,7 +297,7 @@ namespace GoldsrcPhysics.ExportAPIs
             {
                 var obj = world.CollisionObjectArray[i];
                 var point = obj.WorldTransform.Origin;
-                var dir = (point - (*pos)*GBConstant.G2BScale);
+                var dir = (point - (*pos) * GBConstant.G2BScale);
                 var distsqared = dir.LengthSquared;
                 if (distsqared < r * r)
                 {
@@ -315,7 +316,7 @@ namespace GoldsrcPhysics.ExportAPIs
         public static void Shoot(Vector3* from, Vector3* force)
         {
             var gunPos = *from * GBConstant.G2BScale;
-            var to = gunPos + *force*GBConstant.G2BScale;
+            var to = gunPos + *force * GBConstant.G2BScale;
             var world = BWorld.Instance;
             using (var rayCallback = new ClosestRayResultCallback(ref gunPos, ref to))
             {
@@ -342,7 +343,7 @@ namespace GoldsrcPhysics.ExportAPIs
         #endregion
 
         #region BodyPicker
-        
+
         //public static void PickBody()
         //{
         //    _localBodyPicker.PickBody();
@@ -360,7 +361,7 @@ namespace GoldsrcPhysics.ExportAPIs
         /// </summary>
         /// <param name="from">Eye pos or camera origin</param>
         /// <param name="to">Camera origin + direction</param>
-        public static void PickBodyLocal(Vector3 from,Vector3 to)
+        public static void PickBodyLocal(Vector3 from, Vector3 to)
         {
             _bodyPicker.PickBody(from, to);
         }
@@ -396,11 +397,14 @@ namespace GoldsrcPhysics.ExportAPIs
             foreach (var i in searchPath)
             {
                 filePath = Path.Combine(path, i, levelName);
-                if(File.Exists(filePath))
+                if (File.Exists(filePath))
                 {
                     Debug.LogLine("Load map {0}", filePath);
 
                     var bspLoader = new BspLoader(filePath);
+
+                    _kinematicsManager?.Clear();
+                    _kinematicsManager = new KinematicsManager(bspLoader.Models);
                     _sceneStaticObjects.Add(BulletHelper.CreateStaticBody(Matrix.Translation(0, 0, 0),
                         new BvhTriangleMeshShape(bspLoader.Models[0], true),
                         BWorld.Instance));
@@ -411,5 +415,19 @@ namespace GoldsrcPhysics.ExportAPIs
                 levelName,
                 "\n" + string.Join("\n", searchPath)));
         }
+
+        #region Kinematic
+        private static KinematicsManager _kinematicsManager;
+        /// <summary>
+        /// Add collider for entity in current frame.
+        /// The collider will flush out after this frame.
+        /// </summary>
+        /// <param name="pEntity"></param>
+        public static void AddCollider(cl_entity_t* pEntity)
+        {
+            _kinematicsManager.AddCollider(pEntity);
+        }
+
+        #endregion
     }
 }
