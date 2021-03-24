@@ -42,7 +42,11 @@ namespace GoldsrcPhysics
     /// </summary>
     public class BspLoader
     {
-        public List<TriangleIndexVertexArray> Models { get; } = new List<TriangleIndexVertexArray>();
+        /// <summary>
+        /// All brush models in bsp.
+        /// Models[10].name == "*10".
+        /// </summary>
+        public TriangleIndexVertexArray[] Models { get; } = new TriangleIndexVertexArray[2048];
 
         /// <summary>
         /// Model[0] + static entity model
@@ -61,11 +65,98 @@ namespace GoldsrcPhysics
         public BspLoader(string bspPath)
         {
             _Bsp = new BspFile(File.OpenRead(bspPath));
-            LoadStaticGeometryFaces();
-            LoadModelFaces();
-            MergeStaticModels();
+            LoadAllBrushModel();
+        }
+        /// <summary>
+        /// Load all brush models and save as TriangleIndexVertexArray.
+        /// </summary>
+        private void LoadAllBrushModel()
+        {
+            List<List<Face>> brushFaces = new List<List<Face>>(); //brushFaces[0] contains worldspawn faces...
+            foreach (var model in _Bsp.Models)
+            {
+                var entityFaces = new List<Face>();
+                var nodes = new Queue<Node>();
+                nodes.Enqueue(_Bsp.Nodes[model.HeadNodes[0]]);
+                while (nodes.Any())
+                {
+                    var node = nodes.Dequeue();
+                    foreach (var child in node.Children)
+                    {
+                        if (child >= 0)
+                        {
+                            nodes.Enqueue(_Bsp.Nodes[child]);
+                        }
+                        else
+                        {
+                            var leaf = _Bsp.Leaves[-1 - child];
+                            if (leaf.Contents == Contents.Sky)
+                            {
+                                continue;
+                            }
+                            for (var ms = 0; ms < leaf.NumMarkSurfaces; ms++)
+                            {
+                                var faceidx = _Bsp.MarkSurfaces[ms + leaf.FirstMarkSurface];
+                                var face = _Bsp.Faces[faceidx];
+                                if (face.Styles[0] != byte.MaxValue) entityFaces.Add(face);
+                            }
+
+                        }
+                    }
+                }
+
+                brushFaces.Add(entityFaces);
+            }
+
+            for (int i = 0; i < brushFaces.Count; i++)
+            {
+                Models[i] = ModelFacesToMeshShape(brushFaces[i]);
+            }
         }
 
+        private TriangleIndexVertexArray ModelFacesToMeshShape(List<Face> faces)
+        {
+            // Lazy coding, use a vertex class so I don't have to worry about pass-by-value
+            var verts = new List<TempVertex>();
+            var indices = new List<int>();
+
+            foreach (var face in faces)
+            {
+
+                var faceVerts = new List<Vector3>();
+                for (var i = 0; i < face.NumEdges; i++)
+                {
+                    var ei = _Bsp.SurfaceEdges[face.FirstEdge + i];
+                    var edge = _Bsp.Edges[Math.Abs(ei)];
+                    var vtx = _Bsp.Vertices[ei > 0 ? edge.Start : edge.End];
+                    faceVerts.Add(vtx);
+                }
+
+                var start = verts.Count;
+
+                // Triangulate the face
+                for (int i = 1; i < faceVerts.Count - 1; i++)
+                {
+                    indices.Add(start);
+                    indices.Add(start + i);
+                    indices.Add(start + i + 1);
+                }
+
+                // Translate entity local to world coordinate system
+                foreach (var point in faceVerts)
+                {
+                    verts.Add(new TempVertex
+                    {
+                        Position = point,
+                    });
+                }
+
+            }
+            // goldsrc scale to bullet scale
+            var vertices = verts.Select(x => new Vector3(x.Position.X * Scale, x.Position.Y * Scale, x.Position.Z * Scale)).ToArray();
+
+            return new TriangleIndexVertexArray(indices, vertices);
+        }
         /// <summary>
         /// Select static models from Models, then generate StaticGeometry
         /// </summary>
@@ -164,14 +255,6 @@ namespace GoldsrcPhysics
             "func_buyzone",
             "func_bomb_target"
         };
-        /// <summary>
-        /// Translate brush model to world coordinate system.
-        /// </summary>
-        [Obsolete]
-        private void ModelFacesToModels()
-        {
-            ModelFaces.ForEach(x => Models.Add(ModelFacesToMeshShape(x)));
-        }
         private void LoadModelFaces()
         {
             IEnumerable<(Model, EntityData x)> models = _Bsp.Entities

@@ -402,7 +402,7 @@ namespace GoldsrcPhysics.ExportAPIs
 
                     var bspLoader = new BspLoader(filePath);
                     _sceneStaticObjects.Add(BulletHelper.CreateStaticBody(Matrix.Translation(0, 0, 0),
-                        new BvhTriangleMeshShape(bspLoader.StaticGeometry, true),
+                        new BvhTriangleMeshShape(bspLoader.Models[0], true),
                         BWorld.Instance));
                     return;
                 }
