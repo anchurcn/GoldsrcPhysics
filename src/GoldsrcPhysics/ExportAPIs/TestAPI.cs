@@ -48,7 +48,7 @@ namespace GoldsrcPhysics.ExportAPIs
                 {// model_t::name is model file name
                     var pName = ((model_t*)StudioRenderer.NativePointer->m_pRenderModel)->name;
                     var name = Marshal.PtrToStringAnsi((IntPtr)(pName));//will return model filename without extension
-                    PhysicsMain.CreateRagdollController(StudioRenderer.EntityId, pName);
+                    
                 }
                 AddPlayer = false;
             }

@@ -73,6 +73,7 @@ namespace GoldsrcPhysics.ExportAPIs
             InitGlobal();
             PhyConfiguration.Init(Marshal.PtrToStringAnsi((IntPtr)modFolder));
             SetEngineStudioAPI(pEngineStudioAPI);
+            BippedBoneManager.Init();
         }
 
         /// <summary>
@@ -219,12 +220,11 @@ namespace GoldsrcPhysics.ExportAPIs
         #region RagdollAPI
         public static void CreateRagdollController(int entityId, sbyte* modelName)
         {
-            string name = Marshal.PtrToStringAnsi((IntPtr)modelName);
-            _ragdollManager.CreateRagdollController(entityId, name);
+            throw new NotImplementedException();
         }
         public static void CreateRagdollControllerIndex(int entityId, int index)
         {
-            _ragdollManager.CreateRagdollController(entityId, index);
+            throw new NotImplementedException();
         }
         public static void CreateRagdollControllerModel(int entityId, model_t* model)
         {

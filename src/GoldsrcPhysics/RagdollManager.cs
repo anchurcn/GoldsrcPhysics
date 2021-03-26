@@ -79,25 +79,7 @@ namespace GoldsrcPhysics
         /// Create a ragdoll instance for specified entity
         /// </summary>
         /// <param name="entityId"></param>
-        /// <param name="modelName"></param>
-        public void CreateRagdollController(int entityId, string modelName)
-        {
-            _ragdolls[entityId] = RagdollBuilder.Build(modelName);
-            if(_ragdolls[entityId]!=null)
-            {
-                _ragdolls[entityId].EntityId = entityId;
-                _registered.Add(entityId);
-            }
-        }
-        public void CreateRagdollController(int entityId,int index)
-        {
-            _ragdolls[entityId] = RagdollBuilder.Build(index);
-            if (_ragdolls[entityId] != null)
-            {
-                _ragdolls[entityId].EntityId = entityId;
-                _registered.Add(entityId);
-            }
-        }
+        /// <param name="model"></param>
         public unsafe void CreateRagdollController(int entityId,model_t* model)
         {
             _ragdolls[entityId] = RagdollBuilder.Build(model);

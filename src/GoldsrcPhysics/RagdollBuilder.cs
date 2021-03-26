@@ -77,25 +77,10 @@ namespace GoldsrcPhysics
         {
             return BuildInternal(modelName);
         }
-        public unsafe static Ragdoll Build(int modelIndex)
-        {
-            var mod = IEngineStudio.GetModelByIndex(modelIndex);
-            string name = Marshal.PtrToStringAnsi((IntPtr)mod->name);
-            return BuildBipped(IEngineStudio.Mod_Extradata(mod), BippedBone.Get(name), BoneAccessor.Get(name));
-        }
         public unsafe static Ragdoll Build(model_t* model)
         {
 
-            return BuildBipped(IEngineStudio.Mod_Extradata(model), BippedBoneMgr.GetBippedBone(model), BoneAccessor.Get(IEngineStudio.Mod_Extradata(model)));
-        }
-        [Obsolete("No enough info for creating ragdoll from StudioHeader.", true)]
-        public unsafe static Ragdoll Build(Studio_h.studiohdr_t* hdr)
-        {
-            // The name from studioHeader is a internal name, change it in your modeName.qc file. 
-            // That's different from your model file name.
-            string name = Marshal.PtrToStringAnsi((IntPtr)hdr->name);
-            name = Path.GetFileNameWithoutExtension(name);
-            return BuildBipped(hdr, BippedBone.Get(name), BoneAccessor.Get(hdr));
+            return BuildBipped(IEngineStudio.Mod_Extradata(model), BippedBoneManager.GetBippedBone(model), BoneAccessor.Get(IEngineStudio.Mod_Extradata(model)));
         }
 
         /// <summary>
@@ -111,7 +96,7 @@ namespace GoldsrcPhysics
             var model = IEngineStudio.Mod_ForName((sbyte*)pName, true);
             Marshal.FreeHGlobal(pName);
             var hdr = IEngineStudio.Mod_Extradata(model);
-            return BuildBipped(hdr, BippedBone.Get(Path.GetFileNameWithoutExtension(modelName)), BoneAccessor.Get(hdr));
+            throw new NotImplementedException();
         }
         //public static Ragdoll Build(string modelName, BuildOption buildOption)
         //{
@@ -460,23 +445,6 @@ namespace GoldsrcPhysics
     }
     public class BippedBone
     {
-        static Dictionary<string, BippedBone> KeyValues;
-        public static BippedBone Get(string modelName)
-        {
-            BippedBone result = null;
-            if (!KeyValues.TryGetValue(modelName, out result))
-                result = null;
-            return result;
-        }
-        static BippedBone()
-        {
-            KeyValues = new Dictionary<string, BippedBone>();
-            DataContractJsonSerializer serializer = new DataContractJsonSerializer(KeyValues.GetType());
-            using (var stream = File.OpenRead(Path.Combine(PhyConfiguration.GetValue("ModDir"), @"phydata\RagdollBone.json")))
-            {
-                KeyValues = (Dictionary<string, BippedBone>)serializer.ReadObject(stream);
-            }
-        }
         public int Head;
         public int Spine;
         public int Pelvis;
@@ -494,10 +462,37 @@ namespace GoldsrcPhysics
         public int RightFoot;
     }
 
-    public unsafe static class BippedBoneMgr
+    internal unsafe static class BippedBoneManager
     {
-        private static Dictionary<long, BippedBone> _cache = new Dictionary<long, BippedBone>(512);
-        public static BippedBone GetBippedBone(model_t* pModel)
+        private static Dictionary<long, BippedBone> _cache;
+
+        /// <summary>
+        /// RagdollBoneNaming
+        /// </summary>
+        private static List<BippedBoneNaming> _boneNamings;
+        /// <summary>
+        /// RagdollBone
+        /// </summary>
+        private static Dictionary<string, BippedBone> _dicBippedBone;
+        private static FieldInfo[] _namingFields;
+        private static Type _bippedBoneType;
+
+        internal static void Init()
+        {
+            _cache = new Dictionary<long, BippedBone>(512);
+            _boneNamings = new List<BippedBoneNaming>();
+            _namingFields = typeof(BippedBoneNaming).GetFields();
+            _bippedBoneType = typeof(BippedBone);
+            LoadRagdollBoneNaming();
+            LoadRagdollBone();
+        }
+
+        /// <summary>
+        /// Get BippedBone for specified model.
+        /// </summary>
+        /// <param name="pModel"></param>
+        /// <returns></returns>
+        internal static BippedBone GetBippedBone(model_t* pModel)
         {
             BippedBone bippedBone = null;
             long key = (long)pModel;
@@ -505,32 +500,43 @@ namespace GoldsrcPhysics
             if (!_cache.TryGetValue(key, out bippedBone))
             {
                 // calc via naming convension
-                bippedBone = BippedBoneNaming.Get(pModel);
+                bippedBone = GenerateBippedBone(pModel);
                 // special treatment
                 if (bippedBone == null)
                 {
                     string name = Marshal.PtrToStringAnsi((IntPtr)pModel->name);
                     name = Path.GetFileNameWithoutExtension(name);
                     // null or not null
-                    bippedBone = BippedBone.Get(name);
+                    bippedBone = GetBippedBone(name);
                 }
                 _cache.Add(key, bippedBone);
             }
             return bippedBone;
         }
-    }
-    public unsafe class BippedBoneNaming
-    {
-        static List<BippedBoneNaming> _boneNamings = new List<BippedBoneNaming>();
-        static FieldInfo[] _namingFields = typeof(BippedBoneNaming).GetFields();
-        static Type _bippedBoneType = typeof(BippedBone);
-        public static BippedBone Get(model_t* pModel)
+        private static void LoadRagdollBoneNaming()
+        {
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(_boneNamings.GetType());
+            using (var stream = File.OpenRead(@"gsphysics\RagdollBoneNaming.json"))
+            {
+                _boneNamings = (List<BippedBoneNaming>)serializer.ReadObject(stream);
+            }
+        }
+        private static void LoadRagdollBone()
+        {
+            _dicBippedBone = new Dictionary<string, BippedBone>();
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(_dicBippedBone.GetType());
+            using (var stream = File.OpenRead(Path.Combine(PhyConfiguration.GetValue("ModDir"), @"phydata\RagdollBone.json")))
+            {
+                _dicBippedBone = (Dictionary<string, BippedBone>)serializer.ReadObject(stream);
+            }
+        }
+
+        private static BippedBone GenerateBippedBone(model_t* pModel)
         {
             var pStudioModel = IEngineStudio.Mod_Extradata(pModel);
             BippedBone result = new BippedBone();
 
-
-            // 如果哪一套谷歌名能拿到所有索引，
+            // If there exist any naming convension to find all index great than 0.
             if (_boneNamings.Any(
                 x => _namingFields.All(
                     field =>
@@ -547,7 +553,7 @@ namespace GoldsrcPhysics
 
         }
         /// <summary>
-        /// 
+        /// Find a bone named given "boneName" in a model and reutrn its index.
         /// </summary>
         /// <param name="boneName"></param>
         /// <param name="pStudioModel"></param>
@@ -565,15 +571,22 @@ namespace GoldsrcPhysics
             }
             return -1;
         }
-        static BippedBoneNaming()
-        {
-            DataContractJsonSerializer serializer = new DataContractJsonSerializer(_boneNamings.GetType());
-            using (var stream = File.OpenRead(@"gsphysics\RagdollBoneNaming.json"))
-            {
-                _boneNamings = (List<BippedBoneNaming>)serializer.ReadObject(stream);
-            }
-        }
 
+        private static BippedBone GetBippedBone(string modelName)
+        {
+            BippedBone result = null;
+            if (!_dicBippedBone.TryGetValue(modelName, out result))
+                result = null;
+            return result;
+        }
+        
+    }
+
+    /// <summary>
+    /// Key bone naming conventions.
+    /// </summary>
+    public unsafe class BippedBoneNaming
+    {
         public string Head;
         public string Spine;
         public string Pelvis;
