@@ -93,7 +93,7 @@ namespace GoldsrcPhysics
                             p++;
                         }
                     }
-                    shape = new BvhTriangleMeshShape(_bspModels[brushIndex], true);
+                    shape =  new GImpactMeshShape(_bspModels[brushIndex]);
                     _shapesCache[pEntity->curstate.modelindex] = shape;
                 }
                 else if (pEntity->model->type == modtype.mod_studio)
